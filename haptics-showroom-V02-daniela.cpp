@@ -55,7 +55,6 @@ cCamera* camera;
 cDirectionalLight *light;
 cPositionalLight *lightRoom11, *lightRoom12, *lightRoom21, *lightRoom22, *lightHall;
 cSpotLight *fireLight;
-
 // a haptic device handler
 cHapticDeviceHandler* handler;
 
@@ -121,10 +120,10 @@ cFrequencyCounter frequencyCounter;
 // new path to the resources (included in the repository)
 string resourcesPath, resourceRoot;
 
-// initial position : on +Z //change for testing to: cVector3d(1.0, 0.0, 0.2) For Presentation:cVector3d(2.0, 0.0, 0.2)
+// initial position 
 cVector3d currentPosition = INITIAL_POSITION;
 cVector3d currentDirection = cVector3d(1.0, 0.0, 0.0);
-cVector3d deviceOffset = cVector3d(0.2, 0.0, 0.0);
+cVector3d deviceOffset = cVector3d(scal*0.7, 0.0, 0.0);
 
 // if two haptic devices are used they need to be separated in space
 cVector3d deviceOffset1 = cVector3d(0.2, -0.1, 0.0);
@@ -136,8 +135,13 @@ double speed = 0.09*scal; //0.09 %%%
 double rotationalSpeed = 0.006*scal; //0.06 %%%
 //double currentAngleV = 15;
 
+/// ///
+cMatrix3d currRot = cMatrix3d(cos(currentAngle), -sin(currentAngle), 0.0, sin(currentAngle), cos(currentAngle), 0.0, 0.0, 0.0, 1.0);
+cVector3d currDeviceOffset = currRot*deviceOffset;
+/// ///
+
 // distances to walls and floor (& ceiling)
-const double wallDistance = 0.75;
+const double wallDistance = 0.2;
 const double floorDistance = 0.3;
 
 // variable to store state of keys
@@ -166,6 +170,7 @@ cVector3d pos;
 cVector3d oldPos;
 
 cVector3d devSpeed;
+cVector3d currGlobSpeed;
 int tactileDataIndex;
 
 
@@ -219,7 +224,9 @@ int checkTempRegions();
 // function to create planes with enabled force feedback (walls, floor)
 int newPlane(cVector3d position, MyProperties properties, double scalingFactor);
 int newPlaneFromVertices(cVector3d v1, cVector3d v2, cVector3d v3ceil, MyProperties properties);
-bool useVertexShader = true; // define is vertex shader should be used for planes 
+int newPlaneFromVerticesFire(cVector3d v1, cVector3d v2, cVector3d v3ceil, MyProperties properties);
+
+bool useVertexShader = false; // define is vertex shader should be used for planes 
 
 // function to create new cMultiMesh based on obj
 int newComplexObject(cVector3d position, MyProperties properties, string objectFile, double scalingFactor);
@@ -231,7 +238,7 @@ int newObjectcMesh(cVector3d position, MyProperties properties);
 int newObjectcMultiMesh(cVector3d position, MyProperties properties, string objectFile, double scalingFactor);
 
 // function to calculate the forces with Stribeck Effect
-void computeInteractionForcesStribeck(cToolCursor* tool, cVector3d devSpeed);
+void computeInteractionForcesStribeck(cToolCursor* tool, cVector3d devSpeed, cMatrix3d Rot);
 //==============================================================================
 // MAIN FUNCTION
 //==============================================================================
@@ -354,12 +361,12 @@ int main(int argc, char **argv)
 	world->addChild(camera);
 
 	// position and orient the camera
-	camera->set(currentPosition,    // camera position (eye)
+	camera->set(currentPosition + currDeviceOffset,    // camera position (eye) /// /// w/o +currDeviceOffset
 		cVector3d(0.0, 0.0, 0.0),    // lookat position (target)
 		cVector3d(0.0, 0.0, 1.0));   // direction of the "up" vector
 
 	// set the near and far clipping planes of the camera
-	// anything in front/behind these clipping planes will not be rendered
+	// anything in fron+t/behind these clipping planes will not be rendered
 	camera->setClippingPlanes(scal*0.01, scal*20.0);
 
 	
@@ -376,11 +383,11 @@ int main(int argc, char **argv)
 	light->setDir(0.0, 0.0, lightAngle);
 	// set light cone half angle
 	//light->setCutOffAngleDeg(50);
-	light->m_ambient.set(0.9f, 0.9f, 0.9f);
-	light->m_diffuse.set(0.8f, 0.8f, 0.8f);
-	light->m_specular.set(1.0f, 1.0f, 1.0f);
-	
-	
+	light->m_ambient.set(0.8, 0.6, 0.6);
+	light->m_diffuse.set(0.6, 0.4, 0.4);
+	light->m_specular.set(0.5, 0.3, 0.3);
+	//light->setCutOffAngleDeg(30);
+
 	// Create FIRE LIGHT source
 	fireLight = new cSpotLight(world);
 	// attach light to camera
@@ -389,11 +396,14 @@ int main(int argc, char **argv)
 	fireLight->setEnabled(true);
 	// position the light source
 	fireLight->setLocalPos(0.5*scal, yRoom2 - d * 2, 0.4*scal);
-	fireLight->m_ambient.setRed();
-	fireLight->m_diffuse.setRed();
-	fireLight->m_specular.setRed();
-	//fireLight->setAttConstant(0.0000001f);
-	
+	fireLight->setDir(0.0, -1.0, 0.0);
+
+	fireLight->m_ambient.set(0.15, 0.15, 0.15);
+	fireLight->m_diffuse.set(0.6, 0.0, 0.0);
+	fireLight->m_specular.set(1.0, 0.0, 0.0);
+	fireLight->setAttConstant(1.1f);
+	fireLight->setCutOffAngleDeg(60);
+	fireLight->setShadowMapEnabled(true);
 
 	// Create LIGHT sources in room 1
 	lightRoom11 = new cPositionalLight(world);
@@ -403,10 +413,10 @@ int main(int argc, char **argv)
 	lightRoom11->setEnabled(true);
 	// position the light source
 	lightRoom11->setLocalPos(xHall/2, yRoom2*3/4, roomHeight - d);
-	lightRoom11->m_ambient.setWhite();
-	lightRoom11->m_diffuse.setWhite();
-	lightRoom11->m_specular.setWhite();
-
+	lightRoom11->m_ambient.set(0.5, 0.5, 0.5);
+	lightRoom11->m_diffuse.set(0.4, 0.4, 0.4);
+	lightRoom11->m_specular.set(0.4, 0.4, 0.4);
+	/*
 	lightRoom12 = new cPositionalLight(world);
 	// attach light to camera
 	world->addChild(lightRoom12);
@@ -424,10 +434,10 @@ int main(int argc, char **argv)
 	// attach light to camera
 	world->addChild(lightRoom21);
 	// enable light source
-	lightRoom21->setEnabled(true);
+	lightRoom21->setEnabled(false);
 	// position the light source
 	lightRoom21->setLocalPos(xRoom2/2, yRoom2/2, roomHeight-d);
-	
+	*/
 
 	//--------------------------------------------------------------------------
 	// HAPTIC DEVICES / TOOLS
@@ -522,7 +532,6 @@ int main(int argc, char **argv)
 	// ceiling
 	newPlaneFromVertices(cVector3d(-roomLength / 2, -roomWidth / 2, roomHeight), cVector3d(roomLength / 2, -roomWidth / 2, roomHeight), cVector3d(roomLength / 2, roomWidth / 2, roomHeight), myWall);
 	
-	
 	// HALL 
 	// front
 	newPlaneFromVertices(cVector3d(xDoor1, 0.0, 0.0), cVector3d(0.0, 0.0, 0.0), cVector3d(0.0, 0.0, roomHeight), myWall);
@@ -575,7 +584,9 @@ int main(int argc, char **argv)
 
 	
 	// fire
-	newPlaneFromVertices(cVector3d(0.0, yRoom2 - wallDist * 2, 0.0), cVector3d(1.0*scal, yRoom2 - wallDist * 2, 0.0), cVector3d(1.0*scal, yRoom2 - wallDist * 2, 0.8*scal), myFire);
+	newPlaneFromVerticesFire(cVector3d(0.0, yRoom2 - wallDist * 12, 0.0), cVector3d(1.0*scal, yRoom2 - wallDist * 12, 0.0), cVector3d(1.0*scal, yRoom2 - wallDist * 12, 0.8*scal), myFire);
+
+	//newPlaneFromVerticesFire(cVector3d(0.0, yRoom2 - wallDist * 2, 0.0), cVector3d(1.0*scal, yRoom2 - wallDist * 2, 0.0), cVector3d(1.0*scal, yRoom2 - wallDist * 2, 0.8*scal), myFire);
 	// Brick Wall
 	newPlaneFromVertices(cVector3d(-1.5*scal, yRoom2 - wallDist, 0.0), cVector3d(2.5*scal, yRoom2 - wallDist, 0.0), cVector3d(2.5*scal, yRoom2 - wallDist, 2.3*scal), myBricks);
 	// window
@@ -595,10 +606,10 @@ int main(int argc, char **argv)
 	cout << "Creating the objects." << endl;
 
 	newObjectcMultiMesh(cVector3d(xHall/2,yRoom2*5/8,0), TableProp_3ds, "table.3ds", 2*scal);
-	newPlane(cVector3d(xHall / 2, yRoom2 * 5 / 8, scal*0.53), Plane_TableTop, scal);
-	newComplexObject(cVector3d(xHall / 2, yRoom2 * 5 / 8, scal*0.56), VaseProp_obj, "vase2.obj", scal);
+	//newPlane(cVector3d(xHall / 2, yRoom2 * 5 / 8, scal*0.53), Plane_TableTop, scal);
+	newComplexObject(cVector3d(xHall / 2, yRoom2 * 5 / 8, scal*0.56), VaseProp_obj, "vase2.obj", scal/2);
 
-	newObjectcMesh(cVector3d(-xRoom1/2, yRoom1*3/4, 0.0), Cube_MeshAluminum);
+	newObjectcMesh(cVector3d(-xRoom1 / 2, yRoom1 * 3 / 4, 0.0), Cube_CoarseFoam);
 
 	// Print how many objects got created
 	cout << "Created " << objectCounter  << " materialSamples." << endl;
@@ -982,8 +993,14 @@ void computeMatricesFromInput()
 	// recalculate the viewing direction
 	currentDirection = cVector3d(-cos(currentAngle), -sin(currentAngle), -0.1);
 
+	/// ///
+	currRot = cMatrix3d(cos(currentAngle), -sin(currentAngle), 0.0, sin(currentAngle), cos(currentAngle), 0.0, 0.0, 0.0, 1.0);
+	currDeviceOffset = currRot*deviceOffset;
+	/// ///
+
 	// recalculate the direction of the "up" vector
-	camera->set(currentPosition, currentPosition + currentDirection, cVector3d(0, 0, 1));   
+	camera->set(currentPosition + currDeviceOffset, currentPosition + currDeviceOffset + currentDirection, cVector3d(0, 0, 1)); // w/o + currDeviceOffset
+	// camera->set(currentPosition, currentPosition + currentDirection, cVector3d(0, 0, 1));
 }
 
 //------------------------------------------------------------------------------
@@ -1029,7 +1046,7 @@ void close(void)
 //------------------------------------------------------------------------------
 bool enableLiftCondition1 = false;
 
-
+int counter = 0;
 void updateHaptics(void)
 {
 	// angular velocity of object
@@ -1080,26 +1097,31 @@ void updateHaptics(void)
 		pos = tool->getDeviceLocalPos();
 		tool->setDeviceGlobalPos(Rot*pos + currentPosition + currentDirection);
 
+		devSpeed = tool->getDeviceLocalLinVel();
+
+
 		///
 		//cVector3d posHaptic = Rot*pos + currentPosition + currentDirection;
 		//device->setLocalPos(posHaptic);
 		///
 
-		devSpeed = tool->getDeviceLocalLinVel();
+		currGlobSpeed = tool->getDeviceGlobalLinVel();
 
+		
 		// compute interaction forces
-		tool->computeInteractionForces(); ///
-		//computeInteractionForcesStribeck(tool, devSpeed);
+		//tool->computeInteractionForces(); ///
 
-		///
+		computeInteractionForcesStribeck(tool, currGlobSpeed, Rot);
+
+		/// 
 		cVector3d currF = tool->getDeviceGlobalForce();
 		currF.clamp(10);
 		tool->setDeviceGlobalForce(currF);
-		cout << currF.str() << endl;
+		//cout << currF.str() << endl;
 		///
 
 		bool displayWeight = false;
-		for (std::vector<cVector3d>::iterator it = objPositions.begin(); it != objPositions.end(); ++it)
+		/*for (std::vector<cVector3d>::iterator it = objPositions.begin(); it != objPositions.end(); ++it)
 		{
 			cVector3d pos2 = *it;
 
@@ -1129,79 +1151,8 @@ void updateHaptics(void)
 						object[currentObjectToLift]->m_material->setAudioFrictionBuffer(audioBufferV3[currentObjectToLift]);
 					selectedAudioBuffer = 3;
 				}
+			
 				
-
-				//cout << currentObjectToLift << endl;
-				/*
-				cAudioSource* audioSourceDrill;
-				cAudioBuffer* audioBufferDrill;
-				audioBufferDrill = audioDevice->newAudioBuffer();
-				bool fileload5 = audioBufferDrill->loadFromFile(RESOURCE_PATH("../resources/sounds/drill.wav"));
-				if (!fileload5)
-				{
-				#if defined(_MSVC)
-				fileload5 = audioBufferDrill->loadFromFile("../../../bin/resources/sounds/drill.wav");
-				#endif
-				}
-				// create audio source
-				audioSourceDrill = audioDevice->newAudioSource();
-
-				// assign auio buffer to audio source
-				audioSourceDrill->setAudioBuffer(audioBufferDrill);
-
-				// loop playing of sound
-				audioSourceDrill->setLoop(true);
-
-				// turn off sound for now
-				audioSourceDrill->setGain(0.0);
-
-				// set pitch
-				audioSourceDrill->setPitch(0.2);
-
-				// play sound
-				audioSourceDrill->play();
-
-				// updatehaptics:
-				audioSourceDrill->getSourceVel
-				audioSourceDrill->getPosTime
-				audioSourceDrill->setGain(DRILL_AUDIO_GAIN * drillVelocity);
-				*/
-
-				//cout << object[currentObjectToLift]->m_material->getAudioFrictionBuffer()->getBitsPerSample() << endl;
-
-				if(currentObjectToLift == 9)
-				{
-					cout << "Sandpaper"<< endl;
-					/*if (devSpeed.length() > 0.1)
-						sendTemperature(4);
-					else
-						sendReset();*/
-				}
-					
-				
-				//cout << object[currentObjectToLift]->m_material->getAudioFrictionBuffer()->getNumSamples() << endl;
-				
-				/*
-				// resolution (bitsPerSample) = 16 bits!
-				unsigned int intSample;
-				double accValue;
-				//cout << devSpeed.length() << endl;
-				if (tactileDataIndex < object[currentObjectToLift]->m_material->getAudioFrictionBuffer()->getNumSamples()-1)
-				{
-					intSample = 256 * unsigned int(sample[tactileDataIndex+1]) + unsigned int(sample[tactileDataIndex]);
-
-					accValue = (  2.0*double(int16_t(intSample))   ) / 65535.0;
-					cout << accValue << endl;
-					tactileDataIndex+=2;
-				}
-				else
-				{				
-					intSample = 256 * unsigned int(sample[tactileDataIndex+1]) + unsigned int(sample[tactileDataIndex]);
-					accValue = ( 2.0*double(int16_t(intSample)) )  / 65535.0;
-					cout << accValue << endl;
-					tactileDataIndex = 0;
-				}
-				*/
 
 				if (keyState[(unsigned char)'l'] == 1)
 				{
@@ -1211,7 +1162,7 @@ void updateHaptics(void)
 					displayWeight = true;
 				}
 			}
-		}
+		}*/
 
 
 		tool->setDeviceGlobalTorque(RotForce*(tool->getDeviceGlobalTorque()));
@@ -1237,17 +1188,18 @@ void updateHaptics(void)
 void checkBoundaries()
 {
 	// make sure that it is not possible to walk out of the room
-	if (currentPosition.x() > ((roomLength / 2) - wallDistance)) {
-		currentPosition.x(((roomLength / 2) - wallDistance));
+	//if (currentPosition.x() > ((roomLength / 2) - wallDistance)) {
+	if (currentPosition.x() > (xHall + xRoom2 + wallDistance)) {
+		currentPosition.x(xHall + xRoom2);
 	}
-	if (currentPosition.x() < -((roomLength / 2) - wallDistance)) {
-		currentPosition.x(-((roomLength / 2) - wallDistance));
+	if (currentPosition.x() < -(xRoom1 + wallDistance)) {
+		currentPosition.x(-xRoom1);
 	}
-	if (currentPosition.y() > ((roomWidth / 2) - wallDistance)) {
-		currentPosition.y((roomWidth / 2) - wallDistance);
+	if (currentPosition.y() > (yRoom2 + wallDistance)) {
+		currentPosition.y(yRoom2);
 	}
-	if (currentPosition.y() < -((roomWidth / 2) - wallDistance)) {
-		currentPosition.y(-((roomWidth / 2) - wallDistance));
+	if (currentPosition.y() < -(wallDistance)) {
+		currentPosition.y(0.0);
 	}
 	if (currentPosition.z() > ((roomHeight)-floorDistance)) {
 		currentPosition.z((roomHeight)-floorDistance);
@@ -2062,11 +2014,19 @@ int newPlane(cVector3d position, MyProperties properties, double scalingFactor =
 	normalMap1->createMap(plane->m_texture);
 	plane->m_normalMap = normalMap1;
 
+	///
+	// compute surface normals
+	plane->computeAllNormals();
+
+	// compute tangent vectors
+	plane->m_triangles->computeBTN();
+	///
+
 	// enable texture rendering 
 	plane->setUseTexture(true);
 
 	// Since we don't need to see our polygons from both sides, we enable culling.
-	plane->setUseCulling(false);
+	plane->setUseCulling(true);
 
 	// disable material properties and lighting
 	plane->setUseMaterial(false);
@@ -2144,6 +2104,180 @@ int newPlane(cVector3d position, MyProperties properties, double scalingFactor =
 	return 0;
 }
 
+
+
+
+//v2 must be the connection of v1 & v3; v1 & v2 must have the same z-coordinate
+// generates planes in both directions 
+int newPlaneFromVerticesFire(cVector3d v1, cVector3d v2, cVector3d v3ceil, MyProperties properties){
+
+	cVector3d v21 = v2 - v1;
+	cVector3d v23 = v2 - v3ceil;
+	if (abs(v21.dot(v23)) > 1e-3)
+	{
+		cout << endl << "  ERROR: Vertices don't form a plane!" << endl;
+		return -1;
+	}
+	cVector3d center = v2 - 0.5*(v21 + v23);
+
+	double lengthX = v21.length();
+	double lengthY = v23.length();
+	cVector3d startDir1 = cVector3d(0.0, 1.0, 0.0);
+	cVector3d startDir2 = cVector3d(1.0, 0.0, 0.0);
+	double angleX = acos(v23.dot(startDir1) / v23.length());
+	if (isnan(angleX))
+		angleX = 0.0;
+	double angleZ = acos(v21.dot(startDir2) / v21.length());
+	if (isnan(angleZ))
+		angleZ = 0.0;
+	if (v21.y() < 0)
+		angleZ = -angleZ;
+
+	cVector3d combAxis1;
+	double combAngle1;
+
+	cMatrix3d rot11 = cMatrix3d(cVector3d(1.0, 0.0, 0.0), angleX);
+	cMatrix3d rot2 = cMatrix3d(cVector3d(0.0, 0.0, 1.0), angleZ);
+	cMatrix3d totRot1;
+	rot2.mulr(rot11, totRot1);
+	totRot1.toAxisAngle(combAxis1, combAngle1);
+	combAngle1 = combAngle1 / PI * 180;
+
+	// create a virtual mesh
+	cMesh* plane1 = new cMesh();
+
+	// add object to world
+	world->addChild(plane1);
+
+	// set the position of the object
+	plane1->setLocalPos(center.x(), center.y(), center.z());
+
+	// create shape
+	cCreatePlane(plane1, lengthX, lengthY);
+	plane1->setUseDisplayList(true);
+
+	// create collision detector
+	plane1->createAABBCollisionDetector(TOOL_RADIUS);
+
+	// create a texture
+	cTexture2dPtr textureFloor = cTexture2d::create();
+	textureFloor->setUseMipmaps(true);
+	//"./resources/images/sand-wall.png"
+	if (textureFloor->loadFromFile(RESOURCE_PATH(STR_ADD("images/", properties.textureImage))) != 1)
+	{
+		cout << RESOURCE_PATH(STR_ADD("images/", properties.textureImage));
+		cout << "ERROR: Cannot load texture file!" << endl;
+	}
+
+	// apply texture to object
+	plane1->setTexture(textureFloor);
+
+
+	// enable texture rendering 
+	plane1->setUseTexture(true);
+
+	// Since we don't need to see our polygons from both sides, we enable culling.
+	plane1->setUseCulling(true);
+
+	plane1->setUseTransparency(false); 
+
+	// disable material properties and lighting
+	//plane1->setUseMaterial(false);
+
+	// set material properties to light gray
+
+
+
+	// set haptic properties
+	plane1->m_material->setStiffness(properties.stiffness* maxStiffness);
+	plane1->m_material->setStaticFriction(properties.staticFriction);
+	plane1->m_material->setDynamicFriction(properties.dynamicFriction);
+	plane1->m_material->setTextureLevel(properties.textureLevel);
+	plane1->m_material->setHapticTriangleSides(true, false);
+
+	// set the orientation
+	plane1->rotateAboutLocalAxisDeg(combAxis1, combAngle1);
+
+	// create normal map from texture data
+	cNormalMapPtr normalMap1 = cNormalMap::create();
+	normalMap1->createMap(plane1->m_texture);
+	plane1->m_normalMap = normalMap1;
+
+
+	///
+	// compute surface normals
+	plane1->computeAllNormals();
+
+	// compute tangent vectors
+	plane1->m_triangles->computeBTN();
+	///
+
+	if (useVertexShader)
+	{
+		//plane1->m_material->m_specular.setBlack();
+		//--------------------------------------------------------------------------
+		// CREATE SHADERS
+		//--------------------------------------------------------------------------
+
+		// create vertex shader
+		cShaderPtr vertexShader = cShader::create(C_VERTEX_SHADER);
+
+		// load vertex shader from file
+		bool fileload = vertexShader->loadSourceFile("../resources/shaders/bump.vert");
+
+		if (!fileload)
+		{
+#if defined(_MSVC)
+			fileload = vertexShader->loadSourceFile("../../../bin/resources/shaders/bump.vert");
+#endif
+		}
+
+		// create fragment shader
+		cShaderPtr fragmentShader = cShader::create(C_FRAGMENT_SHADER);
+
+		// load fragment shader from file
+		fileload = fragmentShader->loadSourceFile("../resources/shaders/bump.frag");
+
+		if (!fileload)
+		{
+#if defined(_MSVC)
+			fileload = fragmentShader->loadSourceFile("../../../bin/resources/shaders/bump.frag");
+#endif
+		}
+
+		// create program shader
+		cShaderProgramPtr programShader = cShaderProgram::create();
+
+		// assign vertex shader to program shader
+		programShader->attachShader(vertexShader);
+
+		// assign fragment shader to program shader
+		programShader->attachShader(fragmentShader);
+
+		// assign program shader to object
+		plane1->setShaderProgram(programShader);
+
+		// link program shader
+		programShader->linkProgram();
+
+		// set uniforms
+		programShader->setUniformi("uColorMap", 0);
+		programShader->setUniformi("uShadowMap", 0);
+		programShader->setUniformi("uNormalMap", 2);
+		programShader->setUniformf("uInvRadius", 0.0f);
+	}
+
+	plane1->m_material->m_ambient.set(0.35, 0.05, 0.05);
+	plane1->m_material->m_diffuse.set(0.5, 0.5, 0.5);
+	plane1->m_material->m_specular.set(0.50, 0.0, 0.0);
+	plane1->m_material->m_emission.set(0.5, 0.00, 0.00);
+
+	return 0;
+}
+
+
+
+
 //v2 must be the connection of v1 & v3; v1 & v2 must have the same z-coordinate
 // generates planes in both directions 
 int newPlaneFromVertices(cVector3d v1, cVector3d v2, cVector3d v3ceil, MyProperties properties){ 
@@ -2202,30 +2336,28 @@ int newPlaneFromVertices(cVector3d v1, cVector3d v2, cVector3d v3ceil, MyPropert
 	//"./resources/images/sand-wall.png"
 	if (textureFloor->loadFromFile(RESOURCE_PATH(STR_ADD("images/", properties.textureImage))) != 1)
 	{
+		cout << RESOURCE_PATH(STR_ADD("images/", properties.textureImage));
 		cout << "ERROR: Cannot load texture file!" << endl;
 	}
 
 	// apply texture to object
 	plane1->setTexture(textureFloor);
 
-	// create normal map from texture data
-	cNormalMapPtr normalMap1 = cNormalMap::create();
-	normalMap1->createMap(plane1->m_texture);
-	plane1->m_normalMap = normalMap1;
 
 	// enable texture rendering 
 	plane1->setUseTexture(true);
 
 	// Since we don't need to see our polygons from both sides, we enable culling.
-	plane1->setUseCulling(false);
+	plane1->setUseCulling(true);
 
 	///plane1->setUseTransparency(false); 
 
 	// disable material properties and lighting
-	plane1->setUseMaterial(false);
+	//plane1->setUseMaterial(false);
 
 	// set material properties to light gray
-	plane1->m_material->setWhite();
+
+
 
 	// set haptic properties
 	plane1->m_material->setStiffness(properties.stiffness* maxStiffness);
@@ -2236,6 +2368,20 @@ int newPlaneFromVertices(cVector3d v1, cVector3d v2, cVector3d v3ceil, MyPropert
 
 	// set the orientation
 	plane1->rotateAboutLocalAxisDeg(combAxis1, combAngle1);
+
+	// create normal map from texture data
+	cNormalMapPtr normalMap1 = cNormalMap::create();
+	normalMap1->createMap(plane1->m_texture);
+	plane1->m_normalMap = normalMap1;
+
+
+	///
+	// compute surface normals
+	plane1->computeAllNormals();
+
+	// compute tangent vectors
+	plane1->m_triangles->computeBTN();
+	///
 
 	if (useVertexShader)
 	{
@@ -2292,7 +2438,9 @@ int newPlaneFromVertices(cVector3d v1, cVector3d v2, cVector3d v3ceil, MyPropert
 		programShader->setUniformf("uInvRadius", 0.0f);
 	}
 	
-
+	plane1->m_material->m_ambient.set(0.05, 0.05, 0.05);
+	plane1->m_material->m_diffuse.set(0.5, 0.5, 0.5);
+	plane1->m_material->m_specular.set(0.50, 0.0, 0.0);
 	return 0;
 }
 
@@ -2359,32 +2507,51 @@ int checkTempRegions()
 
 
 
-void computeInteractionForcesStribeck(cToolCursor* tool, cVector3d devSpeed)
+void computeInteractionForcesStribeck(cToolCursor* tool, cVector3d currSpeed, cMatrix3d Rot)
 {
-	if ((tool->m_hapticPoint->getNumCollisionEvents() == 1) && devSpeed.length() > 0.0001)
-	{
-		cGenericObject* collidedObj = tool->m_hapticPoint->m_algorithmFingerProxy->m_collisionEvents[0]->m_object;
+	tool->computeInteractionForces();
+	currSpeed = Rot*currSpeed;
 
-		//tool->computeInteractionForces();
-		cVector3d forceN = tool->m_hapticPoint->m_algorithmFingerProxy->computeForces(tool->getDeviceGlobalPos(), tool->getDeviceGlobalLinVel());
+
+	if ((tool->m_hapticPoint->getNumCollisionEvents() == 1) && currSpeed.length() > 0.0001)
+	{		
+		cGenericObject* collidedObj = tool->m_hapticPoint->m_algorithmFingerProxy->m_collisionEvents[0]->m_object;
+		cVector3d forceN_dir = tool->m_hapticPoint->m_algorithmFingerProxy->m_collisionEvents[0]->m_globalNormal; ///
+
+		cVector3d forceN = tool->getDeviceGlobalForce(); //m_hapticPoint->m_algorithmFingerProxy->computeForces(tool->getDeviceGlobalPos(), tool->getDeviceGlobalLinVel());
 		double F_N = forceN.length();
 
 		cVector3d stribeck_force, force_direction;
 		cVector3d result;
-		forceN.crossr(devSpeed, result);
-		result.crossr(forceN, force_direction);
+
+		// calculate force direction
+		//forceN.crossr(currSpeed, result);
+		//forceN.crossr(result, force_direction);
+		forceN_dir.crossr(currSpeed, result); ///
+		forceN_dir.crossr(result, force_direction); ///
 		force_direction.normalize();
-		double v = devSpeed.dot(force_direction); // oder nur Teil senkrecht zu F_N?
+		
+		// calculate force component parallel to friction direction
+		double v = abs(currSpeed.dot(force_direction));
 
 		double StFr = collidedObj->m_material->getStaticFriction();
 		double DyFr = collidedObj->m_material->getDynamicFriction();
-		double v_brk = 0.1; //default: 0.1 m/s
-		double f_visc = 1.0; /// add to Properties
+		double v_brk = 100; //default: 0.1 m/s
+		double f_visc = 0.2;
 
 		stribeck_force = (F_N * (StFr - DyFr) * exp(-(pow((v / (sqrt(2)*v_brk)), 2))) *(v / (sqrt(2)*v_brk)) + DyFr*F_N * tanh(v / (0.1*v_brk)) + f_visc*v)
 			* force_direction;
 
-		tool->setDeviceGlobalForce(stribeck_force + forceN);
+		tool->setDeviceGlobalForce(forceN+ stribeck_force);
+
+		/*counter++;
+		if (counter == 200)
+		{
+			cout << round(10 * F_N * (StFr - DyFr) * exp(-(pow((v / (sqrt(2)*v_brk)), 2))) *(v / (sqrt(2)*v_brk)) + DyFr*F_N * tanh(v / (0.1*v_brk))) / 10
+				<< "\t" << round(DyFr*F_N * tanh(v / (0.1*v_brk)) * 10) / 10 << "\t" << round(f_visc*v * 10) / 10 << endl;
+			counter = 0;
+		}
+		*/
 	}
 	
 
