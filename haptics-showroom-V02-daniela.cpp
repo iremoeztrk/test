@@ -8,7 +8,7 @@
 				repository: https://github.com/hannesb0/haptics-showroom
 */
 //==============================================================================
-
+//29-06
 //------------------------------------------------------------------------------
 #include <assert.h>
 #include <math.h>
@@ -111,6 +111,9 @@ bool simulationFinished = false;
 
 // frequency counter to measure the simulation haptic rate
 cFrequencyCounter frequencyCounter;
+bool collision = false;
+
+
 
 
 //------------------------------------------------------------------------------
@@ -586,7 +589,7 @@ int main(int argc, char **argv)
 	// fire
 	newPlaneFromVerticesFire(cVector3d(0.0, yRoom2 - wallDist * 12, 0.0), cVector3d(1.0*scal, yRoom2 - wallDist * 12, 0.0), cVector3d(1.0*scal, yRoom2 - wallDist * 12, 0.8*scal), myFire);
 
-	//newPlaneFromVerticesFire(cVector3d(0.0, yRoom2 - wallDist * 2, 0.0), cVector3d(1.0*scal, yRoom2 - wallDist * 2, 0.0), cVector3d(1.0*scal, yRoom2 - wallDist * 2, 0.8*scal), myFire);
+	//newPlaneFromVerticesFire(cVector3d(0.0, yRoom2 - wallDist * 2, 0.0), cVector3d(1.0*scal, yRoom2 - wallDist * 2, 0.0), cVector3d(new.0*scal, yRoom2 - wallDist * 2, 0.8*scal), myFire);
 	// Brick Wall
 	newPlaneFromVertices(cVector3d(-1.5*scal, yRoom2 - wallDist, 0.0), cVector3d(2.5*scal, yRoom2 - wallDist, 0.0), cVector3d(2.5*scal, yRoom2 - wallDist, 2.3*scal), myBricks);
 	// window
@@ -1080,7 +1083,7 @@ void updateHaptics(void)
 		// update frequency counter
 		frequencyCounter.signal(1);
 
-
+		
 		/////////////////////////////////////////////////////////////////////
 		// HAPTIC FORCE COMPUTATION
 		/////////////////////////////////////////////////////////////////////
@@ -1113,58 +1116,43 @@ void updateHaptics(void)
 
 		computeInteractionForcesStribeck(tool, currGlobSpeed, Rot);
 
+	/*	if (collision){
+			int selectedAudioBuffer = 1;
+			if (devSpeed.length() < 1.0)
+			{
+				if (selectedAudioBuffer != 1)
+					collidedObj->m_material->setAudioFrictionBuffer(audioBuffer[1]);
+				selectedAudioBuffer = 1;
+			}
+			else if (devSpeed.length() > 1.0  && devSpeed.length() < 5.0)
+			{
+				if (selectedAudioBuffer != 2)
+					collidedObj->m_material->setAudioFrictionBuffer(audioBufferV2[1]);
+				selectedAudioBuffer = 2;
+			}
+			else if (devSpeed.length() >5.0)
+			{
+				if (selectedAudioBuffer != 3)
+					collidedObj->m_material->setAudioFrictionBuffer(audioBufferV3[1]);
+				selectedAudioBuffer = 3;
+			}
+		}*/
 		/// 
 		cVector3d currF = tool->getDeviceGlobalForce();
 		currF.clamp(10);
 		tool->setDeviceGlobalForce(currF);
 		//cout << currF.str() << endl;
 		///
-
+		
 		bool displayWeight = false;
-		/*for (std::vector<cVector3d>::iterator it = objPositions.begin(); it != objPositions.end(); ++it)
-		{
-			cVector3d pos2 = *it;
-
-			if ((pos2 - tool->getDeviceGlobalPos()).length() < 0.4)
-			{			
-				currentObjectToLift = it - objPositions.begin() + 1;
-				
-				unsigned char* sample = object[currentObjectToLift]->m_material->getAudioFrictionBuffer()->getData();
-
-				cout << currentObjectToLift << "   " << selectedAudioBuffer << "   " << devSpeed.length() << endl;
-
-				if (devSpeed.length() < 0.2 )
-				{	
-					if(selectedAudioBuffer != 1)
-						object[currentObjectToLift]->m_material->setAudioFrictionBuffer(audioBuffer[currentObjectToLift]);
-					selectedAudioBuffer = 1;
-				}
-				else if (devSpeed.length() > 0.2  && devSpeed.length() < 0.4)
-				{	
-					if(selectedAudioBuffer != 2)
-						object[currentObjectToLift]->m_material->setAudioFrictionBuffer(audioBufferV2[currentObjectToLift]);
-					selectedAudioBuffer = 2;
-				}
-				else if (devSpeed.length() > 0.4  )
-				{	
-					if(selectedAudioBuffer != 3)
-						object[currentObjectToLift]->m_material->setAudioFrictionBuffer(audioBufferV3[currentObjectToLift]);
-					selectedAudioBuffer = 3;
-				}
-			
-				
-
-				if (keyState[(unsigned char)'l'] == 1)
-				{
-					//cout << "Current Object to Lift: " << currentObjectToLift << endl;
-					object[currentObjectToLift]->setLocalPos(objPositions.at(currentObjectToLift-1).x(), objPositions.at(currentObjectToLift-1).y(), pos.z() + 0.35);
-
-					displayWeight = true;
-				}
-			}
-		}*/
-
-
+		
+	
+		//cout << (cVector3d(-xRoom1 / 2, yRoom1 * 3 / 4, 0.0) - tool->getDeviceGlobalPos()).length() << endl;
+		//if ((cVector3d(-xRoom1 / 2, yRoom1 * 3 / 4, 0.0) - tool->getDeviceGlobalPos()).length() < 6.0){}
+		/*if(devSpeed.length()<1.0){}
+		
+		else*/
+		//cout << currentObjectToLift << endl;
 		tool->setDeviceGlobalTorque(RotForce*(tool->getDeviceGlobalTorque()));
 		if (displayWeight)
 		{	
@@ -1453,14 +1441,17 @@ int newObjectcMesh(cVector3d position, MyProperties properties) ///
 
 
 
+	
+
+	/*
+	audioBuffer[2] = audioDevice->newAudioBuffer();
+	audioBuffer[2]->loadFromFile(STR_ADD("./resources/sounds/", "TactileSignal_Move_Ice.wav"));
+	audioBuffer[2]->convertToMono();
+	object[2]->m_material->setAudioFrictionBuffer(audioBuffer[2]);
+	*/
 
 
-
-
-
-
-
-
+	
 	//--------------------------------------------------------------------------
 	// SETUP AUDIO MATERIAL
 	//--------------------------------------------------------------------------
@@ -1480,17 +1471,17 @@ int newObjectcMesh(cVector3d position, MyProperties properties) ///
 			impactAudioBuffer[audioBufferCounter] = audioDevice->newAudioBuffer();
 
 			// load audio from file
-			if (audioBuffer[audioBufferCounter]->loadFromFile(STR_ADD("./resources/sounds/", properties.audio)) != 1)
+			if (audioBuffer[audioBufferCounter]->loadFromFile(STR_ADD("./resources/sounds/", "Test1.wav")) != 1)
 			{
 				cout << "ERROR: Cannot load audio file: " << STR_ADD("./resources/sounds/", properties.audio) << endl;
 			}
-			if (audioBufferV2[audioBufferCounter]->loadFromFile(STR_ADD("./resources/sounds/V2/", "test80.wav")) != 1) //"test.wav"
+			if (audioBufferV2[audioBufferCounter]->loadFromFile(STR_ADD("./resources/sounds/", "wood-scraping.wav")) != 1) //"test.wav"
 			{
-				cout << "ERROR: Cannot load audio file: " << STR_ADD("./resources/sounds/V2/", "test80.wav") << endl;
+				cout << "ERROR: Cannot load audio file: " << STR_ADD("./resources/sounds/", "test80.wav") << endl;
 			}
-			if (audioBufferV3[audioBufferCounter]->loadFromFile(STR_ADD("./resources/sounds/V3/", "test200.wav")) != 1)
+			if (audioBufferV3[audioBufferCounter]->loadFromFile(STR_ADD("./resources/sounds/", "wood-scraping.wav")) != 1)
 			{
-				cout << "ERROR: Cannot load audio file: " << STR_ADD("./resources/sounds/V3/", "test200.wav") << endl;
+				cout << "ERROR: Cannot load audio file: " << STR_ADD("./resources/sounds/", "test200.wav") << endl;
 			}
 
 			if (impactAudioBuffer[audioBufferCounter]->loadFromFile(STR_ADD("./resources/sounds/", properties.audioImpact)) != 1)
@@ -1522,7 +1513,28 @@ int newObjectcMesh(cVector3d position, MyProperties properties) ///
 		}
 	}
 #endif
+	
+			/*
+				if (audioBuffer[2]->loadFromFile(STR_ADD("./resources/sounds/", "wood-scraping.wav")) != 1)
+			{
+				cout << "ERROR: Cannot load audio file: " << STR_ADD("./resources/sounds/", "test.wav") << endl;
+			}
+			if (audioBufferV2[2]->loadFromFile(STR_ADD("./resources/sounds/", "TactileSignal_Move_Sponge.wav")) != 1) //"test.wav"
+			{
+				cout << "ERROR: Cannot load audio file: " << STR_ADD("./resources/sounds/", "test80.wav") << endl;
+			}
+			if (audioBufferV3[2]->loadFromFile(STR_ADD("./resources/sounds/", "TactileSignal_Move_New_RhombAluMesh.wav")) != 1)
+			{
+				cout << "ERROR: Cannot load audio file: " << STR_ADD("./resources/sounds/", "test200.wav") << endl;
+			}
 
+			if (impactAudioBuffer[2]->loadFromFile(STR_ADD("./resources/sounds/", properties.audioImpact)) != 1)
+			{
+				cout << "ERROR: Cannot load impact audio file!" << endl;
+			}
+			
+	*/
+	
 	//--------------------------------------------------------------------------
 	// SETUP TEMPERATURE REGIONS
 	//--------------------------------------------------------------------------
@@ -1549,8 +1561,9 @@ int newObjectcMesh(cVector3d position, MyProperties properties) ///
 	}
 #endif
 	// incrementing counter
-	objectCounter++;
 
+	objectCounter++;
+	
 	return 0;
 }
 
@@ -1721,6 +1734,7 @@ int newComplexObject(cVector3d position, MyProperties properties, string objectF
 	//--------------------------------------------------------------------------
 	// SETUP AUDIO MATERIAL
 	//--------------------------------------------------------------------------
+	/*
 #if 1
 	// check if audio gain is bigger than zero
 	if (properties.audioGain > 0.0f)
@@ -1763,7 +1777,7 @@ int newComplexObject(cVector3d position, MyProperties properties, string objectF
 		}
 	}
 #endif
-
+	*/
 	//--------------------------------------------------------------------------
 	// SETUP TEMPERATURE REGIONS
 	//--------------------------------------------------------------------------
@@ -2511,16 +2525,18 @@ void computeInteractionForcesStribeck(cToolCursor* tool, cVector3d currSpeed, cM
 {
 	tool->computeInteractionForces();
 	currSpeed = Rot*currSpeed;
-
-
+	
+	collision = false;
 	if ((tool->m_hapticPoint->getNumCollisionEvents() == 1) && currSpeed.length() > 0.0001)
-	{		
+	{
+		collision = true;
 		cGenericObject* collidedObj = tool->m_hapticPoint->m_algorithmFingerProxy->m_collisionEvents[0]->m_object;
 		cVector3d forceN_dir = tool->m_hapticPoint->m_algorithmFingerProxy->m_collisionEvents[0]->m_globalNormal; ///
-
+		
 		cVector3d forceN = tool->getDeviceGlobalForce(); //m_hapticPoint->m_algorithmFingerProxy->computeForces(tool->getDeviceGlobalPos(), tool->getDeviceGlobalLinVel());
 		double F_N = forceN.length();
-
+		
+		
 		cVector3d stribeck_force, force_direction;
 		cVector3d result;
 
@@ -2538,6 +2554,7 @@ void computeInteractionForcesStribeck(cToolCursor* tool, cVector3d currSpeed, cM
 		double DyFr = collidedObj->m_material->getDynamicFriction();
 		double v_brk = 100; //default: 0.1 m/s
 		double f_visc = 0.2;
+		
 
 		stribeck_force = (F_N * (StFr - DyFr) * exp(-(pow((v / (sqrt(2)*v_brk)), 2))) *(v / (sqrt(2)*v_brk)) + DyFr*F_N * tanh(v / (0.1*v_brk)) + f_visc*v)
 			* force_direction;
@@ -2552,6 +2569,25 @@ void computeInteractionForcesStribeck(cToolCursor* tool, cVector3d currSpeed, cM
 			counter = 0;
 		}
 		*/
+		
+		if (devSpeed.length() < 5.0)
+		{
+			if (selectedAudioBuffer != 1)
+				collidedObj->m_material->setAudioFrictionBuffer(audioBuffer[0]);
+			selectedAudioBuffer = 1;
+		}
+		else if (devSpeed.length() > 5.0  && devSpeed.length() < 10.0)
+		{
+			if (selectedAudioBuffer != 2)
+				collidedObj->m_material->setAudioFrictionBuffer(audioBufferV2[0]);
+			selectedAudioBuffer = 2;
+		}
+		else if (devSpeed.length() >10.0)
+		{
+			if (selectedAudioBuffer != 3)
+				collidedObj->m_material->setAudioFrictionBuffer(audioBufferV3[0]);
+			selectedAudioBuffer = 3;
+		}
 	}
 	
 
