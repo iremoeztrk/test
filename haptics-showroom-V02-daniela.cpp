@@ -86,7 +86,7 @@ vector<MyRegions*> tempRegion(MAX_REGIONS_COUNT);
 int tempRegionCounter = 0;
 
 // a vector for audio buffer pointers
-vector<cAudioBuffer*> audioBuffer(MAX_AUDIOBUFFER_COUNT);
+vector<cAudioBuffer*> audioBuffer(3);
 vector<cAudioBuffer*> audioBufferV2(MAX_AUDIOBUFFER_COUNT);
 vector<cAudioBuffer*> audioBufferV3(MAX_AUDIOBUFFER_COUNT);
 
@@ -113,8 +113,9 @@ bool simulationFinished = false;
 cFrequencyCounter frequencyCounter;
 bool collision = false;
 
-
-
+int activated = 0;
+int bufferarraysize = 3;
+int handspeedincmpersecond = 0;
 
 //------------------------------------------------------------------------------
 // Custum variables
@@ -740,7 +741,7 @@ bool enableLiftCondition2 = false;
 void processEvents()
 {
 	SDL_Event event;
-
+	
 	while (SDL_PollEvent(&event))
 	{
 		switch (event.type)
@@ -814,7 +815,11 @@ void processEvents()
 			{
 				keyState[(unsigned char)'c'] = 1;
 			}
-
+			if (event.key.keysym.sym == SDLK_p)
+			{
+				keyState[(unsigned char)'p'] = 1;
+				activated = 1;
+			}
 			break;
 
 		case SDL_KEYUP:
@@ -880,7 +885,11 @@ void processEvents()
 				keyState[(unsigned char)'l'] = 0;
 				
 			}
-
+			if (event.key.keysym.sym == SDLK_p)
+			{
+				keyState[(unsigned char)'p'] = 0;
+				
+			}
 			break;
 
 		case SDL_QUIT:
@@ -977,6 +986,16 @@ void computeMatricesFromInput()
 		cout << lightAngle << endl;
 		light->setDir(0.0, 0.0, lightAngle);
 
+	}
+	
+	if (keyState[(unsigned char)'p'] == 0) // added
+	{
+		if (activated == 1){
+
+			//~newObjectcMesh(cVector3d(-40.0 / 2, 40.0 * 3 / 4, 0.0), Cube_CoarseFoam);
+			//cout << "change object" << endl;
+			activated = 0;
+		}
 	}
 
 	
@@ -1101,7 +1120,9 @@ void updateHaptics(void)
 		tool->setDeviceGlobalPos(Rot*pos + currentPosition + currentDirection);
 
 		devSpeed = tool->getDeviceLocalLinVel();
-
+		handspeedincmpersecond = devSpeed.length() * 3;
+		//cout << devSpeed << endl;
+		//cout << pos << endl;
 
 		///
 		//cVector3d posHaptic = Rot*pos + currentPosition + currentDirection;
@@ -1116,27 +1137,6 @@ void updateHaptics(void)
 
 		computeInteractionForcesStribeck(tool, currGlobSpeed, Rot);
 
-	/*	if (collision){
-			int selectedAudioBuffer = 1;
-			if (devSpeed.length() < 1.0)
-			{
-				if (selectedAudioBuffer != 1)
-					collidedObj->m_material->setAudioFrictionBuffer(audioBuffer[1]);
-				selectedAudioBuffer = 1;
-			}
-			else if (devSpeed.length() > 1.0  && devSpeed.length() < 5.0)
-			{
-				if (selectedAudioBuffer != 2)
-					collidedObj->m_material->setAudioFrictionBuffer(audioBufferV2[1]);
-				selectedAudioBuffer = 2;
-			}
-			else if (devSpeed.length() >5.0)
-			{
-				if (selectedAudioBuffer != 3)
-					collidedObj->m_material->setAudioFrictionBuffer(audioBufferV3[1]);
-				selectedAudioBuffer = 3;
-			}
-		}*/
 		/// 
 		cVector3d currF = tool->getDeviceGlobalForce();
 		currF.clamp(10);
@@ -1462,50 +1462,57 @@ int newObjectcMesh(cVector3d position, MyProperties properties) ///
 		if (audioBufferCounter < MAX_AUDIOBUFFER_COUNT)
 		{
 			// create an audio buffer and load audio wave file
-			audioBuffer[audioBufferCounter] = audioDevice->newAudioBuffer();
-			audioBufferV2[audioBufferCounter] = audioDevice->newAudioBuffer();
-			audioBufferV3[audioBufferCounter] = audioDevice->newAudioBuffer();
+			//audioBuffer[audioBufferCounter] = audioDevice->newAudioBuffer();
+			//audioBufferV2[audioBufferCounter] = audioDevice->newAudioBuffer();
+			//audioBufferV3[audioBufferCounter] = audioDevice->newAudioBuffer();
+			for (int buf = 0; buf < bufferarraysize; buf++){
+				audioBuffer[buf] = audioDevice->newAudioBuffer();
 
-
-
-			impactAudioBuffer[audioBufferCounter] = audioDevice->newAudioBuffer();
-
-			// load audio from file
-			if (audioBuffer[audioBufferCounter]->loadFromFile(STR_ADD("./resources/sounds/", "Test1.wav")) != 1)
-			{
-				cout << "ERROR: Cannot load audio file: " << STR_ADD("./resources/sounds/", properties.audio) << endl;
-			}
-			if (audioBufferV2[audioBufferCounter]->loadFromFile(STR_ADD("./resources/sounds/", "wood-scraping.wav")) != 1) //"test.wav"
-			{
-				cout << "ERROR: Cannot load audio file: " << STR_ADD("./resources/sounds/", "test80.wav") << endl;
-			}
-			if (audioBufferV3[audioBufferCounter]->loadFromFile(STR_ADD("./resources/sounds/", "wood-scraping.wav")) != 1)
-			{
-				cout << "ERROR: Cannot load audio file: " << STR_ADD("./resources/sounds/", "test200.wav") << endl;
 			}
 
-			if (impactAudioBuffer[audioBufferCounter]->loadFromFile(STR_ADD("./resources/sounds/", properties.audioImpact)) != 1)
-			{
-				cout << "ERROR: Cannot load impact audio file!" << endl;
-			}
 
-			// here we convert all files to mono. this allows for 3D sound support. if this code
-			// is commented files are kept in stereo format and 3D sound is disabled. Compare both!
-			audioBuffer[audioBufferCounter]->convertToMono();
-			audioBufferV2[audioBufferCounter]->convertToMono();
-			audioBufferV3[audioBufferCounter]->convertToMono();
+				impactAudioBuffer[audioBufferCounter] = audioDevice->newAudioBuffer();
 
-			impactAudioBuffer[audioBufferCounter]->convertToMono();
+				// load audio from file
+				if (audioBuffer[0]->loadFromFile(STR_ADD("./resources/sounds/", "CoarseFoam_1.wav")) != 1)
+				{
+					cout << "ERROR: Cannot load audio file: " << STR_ADD("./resources/sounds/", properties.audio) << endl;
+				}
+				if (audioBuffer[1]->loadFromFile(STR_ADD("./resources/sounds/", "CoarseFoam_5.wav")) != 1) //"test.wav"
+				{
+					cout << "ERROR: Cannot load audio file: " << STR_ADD("./resources/sounds/", "test80.wav") << endl;
+				}
+				if (audioBuffer[2]->loadFromFile(STR_ADD("./resources/sounds/", "CoarseFoam_11.wav")) != 1)
+				{
+					cout << "ERROR: Cannot load audio file: " << STR_ADD("./resources/sounds/", "test200.wav") << endl;
+				}
+				
+				if (impactAudioBuffer[0]->loadFromFile(STR_ADD("./resources/sounds/", properties.audioImpact)) != 1)
+				{
+					cout << "ERROR: Cannot load impact audio file!" << endl;
+				}
+
+				// here we convert all files to mono. this allows for 3D sound support. if this code
+				// is commented files are kept in stereo format and 3D sound is disabled. Compare both!
+				for (int buf = 0; buf < bufferarraysize; buf++){
+					audioBuffer[buf]->convertToMono();
+				}
+		
+				//audioBufferV2[audioBufferCounter]->convertToMono();
+				//audioBufferV3[0]->convertToMono();
+			
+			impactAudioBuffer[0]->convertToMono();
 			// set audio properties
-			object[objectCounter]->m_material->setAudioImpactBuffer(impactAudioBuffer[audioBufferCounter]);
+			object[objectCounter]->m_material->setAudioImpactBuffer(impactAudioBuffer[0]);
 			object[objectCounter]->m_material->setAudioImpactGain(1.0);
-			object[objectCounter]->m_material->setAudioFrictionBuffer(audioBuffer[audioBufferCounter]);
+			object[objectCounter]->m_material->setAudioFrictionBuffer(audioBuffer[0]);
 			object[objectCounter]->m_material->setAudioFrictionGain((const double)properties.audioGain);
 			object[objectCounter]->m_material->setAudioFrictionPitchGain((const double)properties.audioPitchGain);
 			object[objectCounter]->m_material->setAudioFrictionPitchOffset((const double)properties.audioPitchOffset);
 
 			// increment counter
 			audioBufferCounter++;
+
 		}
 		else
 		{
@@ -2569,7 +2576,9 @@ void computeInteractionForcesStribeck(cToolCursor* tool, cVector3d currSpeed, cM
 			counter = 0;
 		}
 		*/
-		
+
+
+		/*
 		if (devSpeed.length() < 5.0)
 		{
 			if (selectedAudioBuffer != 1)
@@ -2588,7 +2597,47 @@ void computeInteractionForcesStribeck(cToolCursor* tool, cVector3d currSpeed, cM
 				collidedObj->m_material->setAudioFrictionBuffer(audioBufferV3[0]);
 			selectedAudioBuffer = 3;
 		}
+		*/
+	
+		if (handspeedincmpersecond < 10.0)
+		{
+			if (selectedAudioBuffer != 1)
+				collidedObj->m_material->setAudioFrictionBuffer(audioBuffer[0]);
+			selectedAudioBuffer = 1;
+		}
+		else if (handspeedincmpersecond > 10.0  && handspeedincmpersecond < 20.0)
+		{
+			if (selectedAudioBuffer != 2)
+				collidedObj->m_material->setAudioFrictionBuffer(audioBuffer[1]);
+			selectedAudioBuffer = 2;
+		}
+		else if (handspeedincmpersecond > 20.0) 
+		{
+			if (selectedAudioBuffer != 3)
+				collidedObj->m_material->setAudioFrictionBuffer(audioBuffer[2]);
+			selectedAudioBuffer = 3;
+		}
+		
 	}
 	
 
 }
+
+/*
+if (audioBuffer[audioBufferCounter]->loadFromFile(STR_ADD("./resources/sounds/", "Test1.wav")) != 1)
+			{
+				cout << "ERROR: Cannot load audio file: " << STR_ADD("./resources/sounds/", properties.audio) << endl;
+			}
+			if (audioBufferV2[audioBufferCounter]->loadFromFile(STR_ADD("./resources/sounds/", "wood-scraping.wav")) != 1) //"test.wav"
+			{
+				cout << "ERROR: Cannot load audio file: " << STR_ADD("./resources/sounds/", "test80.wav") << endl;
+			}
+			if (audioBufferV3[audioBufferCounter]->loadFromFile(STR_ADD("./resources/sounds/", "wood-scraping.wav")) != 1)
+			{
+				cout << "ERROR: Cannot load audio file: " << STR_ADD("./resources/sounds/", "test200.wav") << endl;
+			}
+
+			if (impactAudioBuffer[audioBufferCounter]->loadFromFile(STR_ADD("./resources/sounds/", properties.audioImpact)) != 1)
+			{
+				cout << "ERROR: Cannot load impact audio file!" << endl;
+			}*/
