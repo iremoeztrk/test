@@ -595,10 +595,10 @@ int main(int argc, char **argv)
 	cout << "Creating the objects." << endl;
 
 	newObjectcMultiMesh(cVector3d(xHall/2,yRoom2*5/8,0), TableProp_3ds, "table.3ds", 2*scal);
-	newPlane(cVector3d(xHall / 2, yRoom2 * 5 / 8, scal*0.53), Plane_TableTop, scal);
-	newComplexObject(cVector3d(xHall / 2, yRoom2 * 5 / 8, scal*0.56), VaseProp_obj, "vase2.obj", scal);
+	//newPlane(cVector3d(xHall / 2, yRoom2 * 5 / 8, scal*0.53), Plane_TableTop, scal);
+	//newComplexObject(cVector3d(xHall / 2, yRoom2 * 5 / 8, scal*0.56), VaseProp_obj, "vase2.obj", scal);
 
-	newObjectcMesh(cVector3d(-xRoom1/2, yRoom1*3/4, 0.0), Cube_MeshAluminum);
+	newObjectcMesh(cVector3d(xHall / 2, yRoom2 * 5 / 8, scal*0.53), Cube_CoarseFoam);
 
 	// Print how many objects got created
 	cout << "Created " << objectCounter  << " materialSamples." << endl;
@@ -1095,21 +1095,28 @@ void updateHaptics(void)
 		cVector3d currF = tool->getDeviceGlobalForce();
 		currF.clamp(10);
 		tool->setDeviceGlobalForce(currF);
-		cout << currF.str() << endl;
+		//cout << currF.str() << endl;
 		///
+
+		//cout <<  " Speed:  " << devSpeed.length() << endl;
 
 		bool displayWeight = false;
 		for (std::vector<cVector3d>::iterator it = objPositions.begin(); it != objPositions.end(); ++it)
 		{
 			cVector3d pos2 = *it;
-
-			if ((pos2 - tool->getDeviceGlobalPos()).length() < 0.4)
+			//cout << " Speed:  " << devSpeed.length() << endl;
+			
+			//cout << pos2 << endl;
+			//cout << (pos2 - tool->getDeviceGlobalPos()).length() << endl;
+			if ((pos2 - tool->getDeviceGlobalPos()).length() < 25)
 			{			
-				currentObjectToLift = it - objPositions.begin() + 1;
+				//cout << " Speed:  " << devSpeed.length() << endl;
+				//currentObjectToLift = it - objPositions.begin() + 1;
+				currentObjectToLift = 0;
 				
 				unsigned char* sample = object[currentObjectToLift]->m_material->getAudioFrictionBuffer()->getData();
 
-				cout << currentObjectToLift << "   " << selectedAudioBuffer << "   " << devSpeed.length() << endl;
+				//cout <<  selectedAudioBuffer << " Speed:  " << devSpeed.length() << endl;
 
 				if (devSpeed.length() < 0.2 )
 				{	
@@ -1528,17 +1535,17 @@ int newObjectcMesh(cVector3d position, MyProperties properties) ///
 			impactAudioBuffer[audioBufferCounter] = audioDevice->newAudioBuffer();
 
 			// load audio from file
-			if (audioBuffer[audioBufferCounter]->loadFromFile(STR_ADD("./resources/sounds/", properties.audio)) != 1)
+			if (audioBuffer[audioBufferCounter]->loadFromFile(STR_ADD("./resources/sounds/","Test1.wav" )) != 1)
 			{
-				cout << "ERROR: Cannot load audio file: " << STR_ADD("./resources/sounds/", properties.audio) << endl;
+				cout << "ERROR: Cannot load audio file: " << STR_ADD("./resources/sounds/", "Test1.wav") << endl;
 			}
-			if (audioBufferV2[audioBufferCounter]->loadFromFile(STR_ADD("./resources/sounds/V2/", "test80.wav")) != 1) //"test.wav"
+			if (audioBufferV2[audioBufferCounter]->loadFromFile(STR_ADD("./resources/sounds/", "Test2.wav")) != 1) //"test.wav"
 			{
-				cout << "ERROR: Cannot load audio file: " << STR_ADD("./resources/sounds/V2/", "test80.wav") << endl;
+				cout << "ERROR: Cannot load audio file: " << STR_ADD("./resources/sounds/", "Test2.wav") << endl;
 			}
-			if (audioBufferV3[audioBufferCounter]->loadFromFile(STR_ADD("./resources/sounds/V3/", "test200.wav")) != 1)
+			if (audioBufferV3[audioBufferCounter]->loadFromFile(STR_ADD("./resources/sounds/", "Test3.wav")) != 1)
 			{
-				cout << "ERROR: Cannot load audio file: " << STR_ADD("./resources/sounds/V3/", "test200.wav") << endl;
+				cout << "ERROR: Cannot load audio file: " << STR_ADD("./resources/sounds/", "Test3.wav") << endl;
 			}
 
 			if (impactAudioBuffer[audioBufferCounter]->loadFromFile(STR_ADD("./resources/sounds/", properties.audioImpact)) != 1)

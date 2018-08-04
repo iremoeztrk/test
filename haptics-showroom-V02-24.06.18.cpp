@@ -8,14 +8,13 @@
 				repository: https://github.com/hannesb0/haptics-showroom
 */
 //==============================================================================
-
+//origin
 //------------------------------------------------------------------------------
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <CMatrix3d.h>
 //------------------------------------------------------------------------------
 #include "chai3d.h"
 //------------------------------------------------------------------------------
@@ -32,13 +31,17 @@ using namespace chai3d;
 using namespace std;
 //------------------------------------------------------------------------------
 
-#define PI 3.14159265
+
 
 
 ////////////////////////////////////////
 // define if Oculus Rift is used or not
 bool useOculus = false;
 ////////////////////////////////////////
+
+
+
+
 
 
 //------------------------------------------------------------------------------
@@ -51,10 +54,8 @@ cWorld* world;
 // a camera to render the world in the window display
 cCamera* camera;
 
-// light sources
+// a light source
 cDirectionalLight *light;
-cPositionalLight *lightRoom11, *lightRoom12, *lightRoom21, *lightRoom22, *lightHall;
-cSpotLight *fireLight;
 
 // a haptic device handler
 cHapticDeviceHandler* handler;
@@ -64,12 +65,12 @@ cGenericHapticDevicePtr hapticDevice;
 
 // a virtual tool representing the haptic device in the scene
 cToolCursor* tool;
-
-// haptic device model
-cShapeSphere* device;
+cDeltaDevice* delta;
 
 // a vector containing the virtual object pointers
 vector<cMesh*> object(MAX_OBJECT_COUNT);
+
+
 
 // a counter for virtual objects
 int objectCounter = 0;
@@ -93,7 +94,9 @@ vector<cAudioBuffer*> audioBufferV3(MAX_AUDIOBUFFER_COUNT);
 
 int selectedAudioBuffer = 1;
 
+
 vector<cAudioBuffer*> impactAudioBuffer(MAX_AUDIOBUFFER_COUNT);
+
 
 // a counter for the audio buffers
 int audioBufferCounter = 0;
@@ -113,7 +116,6 @@ bool simulationFinished = false;
 // frequency counter to measure the simulation haptic rate
 cFrequencyCounter frequencyCounter;
 
-
 //------------------------------------------------------------------------------
 // Custum variables
 //------------------------------------------------------------------------------
@@ -132,8 +134,8 @@ cVector3d deviceOffset2 = cVector3d(0.2, 0.1, 0.0);
 
 // variable for changing the perspective and for walking
 double currentAngle = 0;
-double speed = 0.09*scal; //0.09 %%%
-double rotationalSpeed = 0.006*scal; //0.06 %%%
+double speed = 0.09;
+double rotationalSpeed = 0.06;
 //double currentAngleV = 15;
 
 // distances to walls and floor (& ceiling)
@@ -176,6 +178,9 @@ double lightAngle = -50;
 int currentObjectToLift;
 
 
+
+
+
 cMultiMesh* tooth;
 
 
@@ -188,7 +193,6 @@ cOVRRenderContext renderContext;
 
 // oculus device
 cOVRDevice oculusVR;
-
 
 //------------------------------------------------------------------------------
 // DECLARED FUNCTIONS
@@ -217,21 +221,17 @@ void drawCoordinates(cVector3d position, double length, double width);
 int checkTempRegions();
 
 // function to create planes with enabled force feedback (walls, floor)
-int newPlane(cVector3d position, MyProperties properties, double scalingFactor);
-int newPlaneFromVertices(cVector3d v1, cVector3d v2, cVector3d v3ceil, MyProperties properties);
-bool useVertexShader = true; // define is vertex shader should be used for planes 
+int newPlane(cVector3d position, MyProperties properties);
 
-// function to create new cMultiMesh based on obj
-int newComplexObject(cVector3d position, MyProperties properties, string objectFile, double scalingFactor);
 
-// function to create new cMesh for simple geometries (cube, sphere, cylinder)
+int newComplexObject(cVector3d position, MyProperties properties);
+
+// function to create new objects based on cMesh
 int newObjectcMesh(cVector3d position, MyProperties properties);
 
 // function to create new objects based on cMultiMesh (e.g. 3ds files)
 int newObjectcMultiMesh(cVector3d position, MyProperties properties, string objectFile, double scalingFactor);
 
-// function to calculate the forces with Stribeck Effect
-void computeInteractionForcesStribeck(cToolCursor* tool, cVector3d devSpeed);
 //==============================================================================
 // MAIN FUNCTION
 //==============================================================================
@@ -360,74 +360,33 @@ int main(int argc, char **argv)
 
 	// set the near and far clipping planes of the camera
 	// anything in front/behind these clipping planes will not be rendered
-	camera->setClippingPlanes(scal*0.01, scal*20.0);
+	camera->setClippingPlanes(0.01, 20.0);
 
-	
-	// create LIGHT source
+	// create a light source
 	//light = new cSpotLight(world);
 	light = new cDirectionalLight(world);
+
 	// add light to world
 	world->addChild(light);
+
 	// enable light source
 	light->setEnabled(true);
+
 	// position the light source
+	//light->setLocalPos(3.5, 2.0, 0.0);
 	light->setLocalPos(lightPos1, 2.0, 0.0);
+
 	// define the direction of the light beam
+	//light->setDir(-3.5, -2.0, 0.0);
+	
 	light->setDir(0.0, 0.0, lightAngle);
+	//light->setDir(0.0, 0.0, -30.0);
+
 	// set light cone half angle
 	//light->setCutOffAngleDeg(50);
 	light->m_ambient.set(0.9f, 0.9f, 0.9f);
 	light->m_diffuse.set(0.8f, 0.8f, 0.8f);
 	light->m_specular.set(1.0f, 1.0f, 1.0f);
-	
-	
-	// Create FIRE LIGHT source
-	fireLight = new cSpotLight(world);
-	// attach light to camera
-	world->addChild(fireLight);
-	// enable light source
-	fireLight->setEnabled(true);
-	// position the light source
-	fireLight->setLocalPos(0.5*scal, yRoom2 - d * 2, 0.4*scal);
-	fireLight->m_ambient.setRed();
-	fireLight->m_diffuse.setRed();
-	fireLight->m_specular.setRed();
-	//fireLight->setAttConstant(0.0000001f);
-	
-
-	// Create LIGHT sources in room 1
-	lightRoom11 = new cPositionalLight(world);
-	// attach light to camera
-	world->addChild(lightRoom11);
-	// enable light source
-	lightRoom11->setEnabled(true);
-	// position the light source
-	lightRoom11->setLocalPos(xHall/2, yRoom2*3/4, roomHeight - d);
-	lightRoom11->m_ambient.setWhite();
-	lightRoom11->m_diffuse.setWhite();
-	lightRoom11->m_specular.setWhite();
-
-	lightRoom12 = new cPositionalLight(world);
-	// attach light to camera
-	world->addChild(lightRoom12);
-	// enable light source
-	lightRoom12->setEnabled(true);
-	// position the light source
-	lightRoom12->setLocalPos(-xRoom1/ 2, yHall/2, roomHeight - d);
-	lightRoom12->m_ambient.setWhite();
-	lightRoom12->m_diffuse.setWhite();
-	lightRoom12->m_specular.setWhite();
-
-
-	// Create LIGHT source in room 2
-	lightRoom21 = new cPositionalLight(world);
-	// attach light to camera
-	world->addChild(lightRoom21);
-	// enable light source
-	lightRoom21->setEnabled(true);
-	// position the light source
-	lightRoom21->setLocalPos(xRoom2/2, yRoom2/2, roomHeight-d);
-	
 
 	//--------------------------------------------------------------------------
 	// HAPTIC DEVICES / TOOLS
@@ -474,6 +433,45 @@ int main(int argc, char **argv)
 	// create an audio source for this tool.
 	tool->createAudioSource(audioDevice);
 
+
+
+	// create a new mesh.
+	/*cMultiMesh* drill = new cMultiMesh();
+
+	// load a drill like mesh and attach it to the tool
+	fileload = drill->loadFromFile(RESOURCE_PATH("./resources/3ds/drill.3ds"));
+	if (!fileload)
+	{
+#if defined(_MSVC)
+		fileload = drill->loadFromFile("./resources/3ds/drill.3ds");
+#endif
+	}
+	if (!fileload)
+	{
+		printf("Error - 3D Model failed to load correctly.\n");
+		close();
+		return (-1);
+	}
+
+	// resize tool mesh model
+	drill->scale(0.004);
+
+	// remove the collision detector. we do not want to compute any
+	// force feedback rendering on the object itself.
+	drill->deleteCollisionDetector(true);
+
+	// define a material property for the mesh
+	cMaterial mat;
+	mat.m_ambient.set(0.5f, 0.5f, 0.5f);
+	mat.m_diffuse.set(0.8f, 0.8f, 0.8f);
+	mat.m_specular.set(1.0f, 1.0f, 1.0f);
+	drill->setMaterial(mat, true);
+	drill->computeAllNormals();
+
+	// attach drill to tool
+	tool->m_image->addChild(drill);*/
+
+
 	// start the haptic tool
 	tool->start();
 
@@ -484,130 +482,198 @@ int main(int argc, char **argv)
 	// device and the virtual workspace defined for the tool
 	workspaceScaleFactor = tool->getWorkspaceScaleFactor();
 
-	/// 
-	/*
-	//create a large sphere that represents the haptic device
-	device = new cShapeSphere(TOOL_RADIUS);
-	world->addChild(device);
-	device->m_material->setBlack();
-	//device->m_material->setShininess(1);
-	*/
-
 	// retrieve max stiffness
 	/////////////////////maxStiffness = hapticDeviceInfoX.m_maxLinearStiffness /  workspaceScaleFactor;
 	cout << "Max stiffness of device: " << maxStiffness << endl;
 
-
-
 	//--------------------------------------------------------------------------
-	// CREATE ROOM %%%
+	// CREATE ROOM
 	//--------------------------------------------------------------------------
 
 	cout << "Creating the room." << endl;
 
 	// draw a coordinate system for easier orientation
-	/*
-	drawCoordinates(cVector3d(0.0, 0.0, 0.01), 0.3, 1.0);
-	drawCoordinates(cVector3d(xHall, 0.0, 0.01), 0.3, 1.0);
-	drawCoordinates(cVector3d(xHall, yHall, 0.01), 0.3, 1.0);
-	drawCoordinates(cVector3d(0.0, yHall, 0.01), 0.3, 1.0);
-	drawCoordinates(cVector3d(0.0, 0.0, roomHeight), 0.3, 1.0);
-	*/
+	//drawCoordinates(cVector3d(-0.5, -0.5, 0.05), 0.3, 1.0);
 
-	//front walls (Xmax,0,0),(0,0,0),(0,0,h)
-	//back walls (0,0,0),(Xmax,0,0),(Xmax,0,h)
-	
-	// floor
-	newPlaneFromVertices(cVector3d(-roomLength / 2, roomWidth / 2, 0.0), cVector3d(roomLength / 2, roomWidth / 2, 0.0), cVector3d(roomLength / 2, -roomWidth / 2, 0.0), myFloor);
-	// ceiling
-	newPlaneFromVertices(cVector3d(-roomLength / 2, -roomWidth / 2, roomHeight), cVector3d(roomLength / 2, -roomWidth / 2, roomHeight), cVector3d(roomLength / 2, roomWidth / 2, roomHeight), myWall);
-	
-	
-	// HALL 
-	// front
-	newPlaneFromVertices(cVector3d(xDoor1, 0.0, 0.0), cVector3d(0.0, 0.0, 0.0), cVector3d(0.0, 0.0, roomHeight), myWall);
-	newPlaneFromVertices(cVector3d(xDoor1 + doorWidth, 0.0, doorHeight), cVector3d(xDoor1, 0.0, doorHeight), cVector3d(xDoor1, 0.0, roomHeight), myWall);
-	newPlaneFromVertices(cVector3d(xHall, 0.0, 0.0), cVector3d(xDoor1 + doorWidth, 0.0, 0.0), cVector3d(xDoor1 + doorWidth, 0.0, roomHeight), myWall);
-	// door
-	newPlaneFromVertices(cVector3d(xDoor1 + doorWidth, 0.0, 0.0), cVector3d(xDoor1, 0.0, 0.0), cVector3d(xDoor1, 0.0, doorHeight), myDoor);
-	// back
-	newPlaneFromVertices(cVector3d(0.0, yHall, 0.0), cVector3d(xHall, yHall, 0.0), cVector3d(xHall, yHall, roomHeight), myWall);
-	// left wall hall (split into 3 parts to fit door)
-	newPlaneFromVertices(cVector3d(0.0, 0.0, 0.0), cVector3d(0.0, yDoor23, 0.0), cVector3d(0.0, yDoor23, roomHeight), myWall);
-	newPlaneFromVertices(cVector3d(0.0, yDoor23, doorHeight), cVector3d(0.0, yDoor23 + doorWidth, doorHeight), cVector3d(0.0, yDoor23 + doorWidth, roomHeight), myWall);
-	newPlaneFromVertices(cVector3d(0.0, yDoor23 + doorWidth, 0.0), cVector3d(0.0, yHall, 0.0), cVector3d(0.0, yHall, roomHeight), myWall);
-	// right wall hall (split into 3 parts to fit door)
-	newPlaneFromVertices(cVector3d(xHall, yHall, 0.0), cVector3d(xHall, yDoor23 + doorWidth, 0.0), cVector3d(xHall, yDoor23 + doorWidth, roomHeight), myWall);
-	newPlaneFromVertices(cVector3d(xHall, yDoor23 + doorWidth, doorHeight), cVector3d(xHall, yDoor23, doorHeight), cVector3d(xHall, yDoor23, roomHeight), myWall);
-	newPlaneFromVertices(cVector3d(xHall, yDoor23, 0.0), cVector3d(xHall, 0.0, 0.0), cVector3d(xHall, 0.0, roomHeight), myWall);
-	
-	
-	// ROOM 2
-	// front wall room 2
-	newPlaneFromVertices(cVector3d(xHall + xRoom2, 0.0, 0.0), cVector3d(xHall + wallDist, 0.0, 0.0), cVector3d(xHall + wallDist, 0.0, roomHeight), myTiles);
-	// back wall room 2
-	newPlaneFromVertices(cVector3d(xHall + wallDist, yRoom2, 0.0), cVector3d(xHall + xRoom2, yRoom2, 0.0), cVector3d(xHall + xRoom2, yRoom2 - d, roomHeight), myTiles);
-	// right wall room 2
-	newPlaneFromVertices(cVector3d(xHall + xRoom2, yRoom2, 0.0), cVector3d(xHall + xRoom2, 0.0, 0.0), cVector3d(xHall + xRoom2, 0.0, roomHeight), myTiles);
-	// left wall room 2 (split into 3 parts to fit door)
-	newPlaneFromVertices(cVector3d(xHall + wallDist, 0.0, 0.0), cVector3d(xHall + wallDist, yDoor23, 0.0), cVector3d(xHall + wallDist, yDoor23, roomHeight), myTiles);
-	newPlaneFromVertices(cVector3d(xHall + wallDist, yDoor23, doorHeight), cVector3d(xHall + wallDist, yDoor23 + doorWidth, doorHeight), cVector3d(xHall + wallDist, yDoor23 + doorWidth, roomHeight), myTiles);
-	newPlaneFromVertices(cVector3d(xHall + wallDist, yDoor23 + doorWidth, 0.0), cVector3d(xHall + wallDist, yRoom2, 0.0), cVector3d(xHall + wallDist, yRoom2, roomHeight), myTiles);
-	
-
-	// ROOM 1
-	// back wall
-	newPlaneFromVertices(cVector3d(xHall - xRoom1Cut, yRoom2, 0.0), cVector3d(xHall, yRoom2, 0.0), cVector3d(xHall, yRoom2, roomHeight), myWall);
-	// front wall 1
-	newPlaneFromVertices(cVector3d(0.0, 0.0, 0.0), cVector3d(-xRoom1, 0.0, 0.0), cVector3d(-xRoom1, 0.0, roomHeight), myWall);
-	// front wall 2
-	newPlaneFromVertices(cVector3d(xHall, yHall + wallDist, 0.0), cVector3d(-wallDist, yHall + wallDist, 0.0), cVector3d(-wallDist, yHall + wallDist, roomHeight), myWall);
-	// left wall
-	newPlaneFromVertices(cVector3d(-xRoom1, 0.0, 0.0), cVector3d(-xRoom1, yRoom1Cut, 0.0), cVector3d(-xRoom1, yRoom1Cut, roomHeight), myWall);
-	// right wall 1
-	newPlaneFromVertices(cVector3d(xHall, yRoom2, 0.0), cVector3d(xHall, yHall + wallDist, 0.0), cVector3d(xHall, yHall + wallDist, roomHeight), myWall);
-	// right wall 2 (split into 3 parts to fit door)
-	newPlaneFromVertices(cVector3d(-wallDist, yHall + wallDist, 0.0), cVector3d(-wallDist, yDoor23 + doorWidth, 0.0), cVector3d(-wallDist, yDoor23 + doorWidth, roomHeight), myWall);
-	newPlaneFromVertices(cVector3d(-wallDist, yDoor23 + doorWidth, doorHeight), cVector3d(-wallDist, yDoor23, doorHeight), cVector3d(-wallDist, yDoor23, roomHeight), myWall);
-	newPlaneFromVertices(cVector3d(-wallDist, yDoor23, 0.0), cVector3d(-wallDist, 0.0, 0.0), cVector3d(-wallDist, 0.0, roomHeight), myWall);
-	// skewed outer wall
-	newPlaneFromVertices(cVector3d(-xRoom1, yRoom1Cut, 0.0), cVector3d(xHall - xRoom1Cut, yRoom2, 0.0), cVector3d(xHall - xRoom1Cut, yRoom2, roomHeight), myWall);
-
-	
-	// fire
-	newPlaneFromVertices(cVector3d(0.0, yRoom2 - wallDist * 2, 0.0), cVector3d(1.0*scal, yRoom2 - wallDist * 2, 0.0), cVector3d(1.0*scal, yRoom2 - wallDist * 2, 0.8*scal), myFire);
-	// Brick Wall
-	newPlaneFromVertices(cVector3d(-1.5*scal, yRoom2 - wallDist, 0.0), cVector3d(2.5*scal, yRoom2 - wallDist, 0.0), cVector3d(2.5*scal, yRoom2 - wallDist, 2.3*scal), myBricks);
-	// window
-	newPlaneFromVertices(cVector3d(-xRoom1 + wallDist, 1.5, zWindow), cVector3d(-xRoom1 + wallDist, 1.5 + windowWidth2, zWindow), cVector3d(-xRoom1 + wallDist, 1.5 + windowWidth2, zWindow + windowHeight), myWindow);
-	
-
-	cout << "Room created." << endl;
-
-	//--------------------------------------------------------------------------
-	// CREATE OBJECT %%%
-	//--------------------------------------------------------------------------
-
-	
 	initObjPositions();
 	initWeights();
 
+	// floor
+	newPlane(cVector3d(0.0, 0.0, 0.0), myFloor);
+
+	// ceiling
+	newPlane(cVector3d(0.0, 0.0, roomHeight), myCeiling);
+
+	// right wall
+	newPlane(cVector3d(0.0, (roomWidth / 2), (roomHeight / 2)), myRightWall);
+
+	// left wall
+	newPlane(cVector3d(0.0, -(roomWidth / 2), (roomHeight / 2)), myLeftWall);
+
+	// back wall
+	newPlane(cVector3d(-(roomLength / 2), 0.0, (roomHeight / 2)), myBackWall);
+
+	// front wall
+	newPlane(cVector3d((roomLength / 2), 0.0, (roomHeight / 2)), myFrontWall);
+
+	// window
+	newPlane(cVector3d(-(roomLength / 2), 0.0, (roomHeight / 2.5)), myWindow);
+
+	// title
+	newPlane(cVector3d(-(roomLength / 2), 0.0, (roomHeight / 1.25)), myTitle);
+
+	//--------------------------------------------------------------------------
+	// CREATE OBJECT
+	//--------------------------------------------------------------------------
+
 	cout << "Creating the objects." << endl;
 
-	newObjectcMultiMesh(cVector3d(xHall/2,yRoom2*5/8,0), TableProp_3ds, "table.3ds", 2*scal);
-	//newPlane(cVector3d(xHall / 2, yRoom2 * 5 / 8, scal*0.53), Plane_TableTop, scal);
-	//newComplexObject(cVector3d(xHall / 2, yRoom2 * 5 / 8, scal*0.56), VaseProp_obj, "vase2.obj", scal);
 
-	newObjectcMesh(cVector3d(xHall / 2, yRoom2 * 5 / 8, scal*0.53), Cube_CoarseFoam);
+
+	newComplexObject(cVector3d(0,0,0), Cube_CeramicTile);
+
+
+	// NEW
+	//newPlane(			cVector3d(-5.0,  -(roomWidth / 2), 0.75), myLeftLableCT);
+	newObjectcMultiMesh(cVector3d(-5.0, (-(roomWidth / 2) + 0.5), -0.005), Property_3ds, "table.3ds", 1);
+	newObjectcMesh(objPositions.at(0), Cube_CeramicTile);
+
+	//newPlane(			cVector3d(-4.0,	-(roomWidth / 2), 0.75), myLeftLableCF);
+	newObjectcMultiMesh(cVector3d(-4.0, (-(roomWidth / 2) + 0.5), -0.005), Property_3ds, "table.3ds", 1);
+	newObjectcMesh(objPositions.at(1), Cube_CoarseFoam);
+
+
+	//newPlane(			cVector3d(-3.0, -(roomWidth / 2), 0.75), myLeftLableLA);
+	newObjectcMultiMesh(cVector3d(-3.0, (-(roomWidth / 2) + 0.5), -0.005), Property_3ds, "table.3ds", 1);
+	newObjectcMesh(objPositions.at(2), Cube_LinedAluminum);
+
+
+	newPlane(			cVector3d(-2.0, -(roomWidth / 2), 0.75), myLeftLableAM);
+	newObjectcMultiMesh(cVector3d(-2.0, (-(roomWidth / 2) + 0.5), -0.005), Property_3ds, "table.3ds", 1);
+	newObjectcMesh(objPositions.at(3), Cube_MeshAluminum);
+
+	newPlane(			cVector3d(-1.0, -(roomWidth / 2), 0.75), myRightLablePR);
+	newObjectcMultiMesh(cVector3d(-1.0, (-(roomWidth / 2) + 0.5), -0.005), Property_3ds, "table.3ds", 1);
+	newObjectcMesh(objPositions.at(4), Cube_StructuredRubber);
+
+	newPlane(			cVector3d(0.0, -(roomWidth / 2), 0.75), myRightLableFW);
+	newObjectcMultiMesh(cVector3d(0.0, (-(roomWidth / 2) + 0.5), -0.005), Property_3ds, "table.3ds", 1);
+	newObjectcMesh(objPositions.at(5), Cube_Ice);
+
+	//newPlane(			cVector3d(1.0, -(roomWidth / 2), 0.75), myLeftLableFa);
+	newObjectcMultiMesh(cVector3d(1.0, (-(roomWidth / 2) + 0.5), -0.005), Property_3ds, "table.3ds", 1);
+	newObjectcMesh(objPositions.at(6), Cube_Fabric);
+
+	newPlane(			cVector3d(2.0, -(roomWidth / 2), 0.75), myRightLableCG);
+	newObjectcMultiMesh(cVector3d(2.0, (-(roomWidth / 2) + 0.5), -0.005), Property_3ds, "table.3ds", 1);
+	newObjectcMesh(objPositions.at(7), Cube_GraniteTile);
+
+	newPlane(			cVector3d(3.0, -(roomWidth / 2), 0.75), myRightLableCG);
+	newObjectcMultiMesh(cVector3d(3.0, (-(roomWidth / 2) + 0.5), -0.005), Property_3ds, "table.3ds", 1);
+	newObjectcMesh(objPositions.at(8), Cube_Plastic);
+
+	newPlane(			cVector3d(4.0, -(roomWidth / 2), 0.75), myRightLableCG);
+	newObjectcMultiMesh(cVector3d(4.0, (-(roomWidth / 2) + 0.5), -0.005), Property_3ds, "table.3ds", 1);
+	newObjectcMesh(objPositions.at(9), Cube_Sandpaper);
+
+	newPlane(			cVector3d(5.0, -(roomWidth / 2), 0.75), myRightLableCG);
+	newObjectcMultiMesh(cVector3d(5.0, (-(roomWidth / 2) + 0.5), -0.005), Property_3ds, "table.3ds", 1);
+	newObjectcMesh(objPositions.at(10), Cube_Sponge);
+
+
+
+
+
+
+
+
+
+	newPlane(			cVector3d(-5.0, (roomWidth / 2), 0.75), myLeftLableSS);
+	newObjectcMultiMesh(cVector3d(-5.0, ((roomWidth / 2) - 0.5), -0.005), Property_3ds, "table.3ds", 1);
+	newObjectcMesh(objPositions.at(11), Cube_StainlessSteel);
+
+
+	newPlane(			cVector3d(-4.0, (roomWidth / 2), 0.75), myLeftLablePW);
+	newObjectcMultiMesh(cVector3d(-4.0, ((roomWidth / 2) - 0.5), -0.005), Property_3ds, "table.3ds", 1);
+	newObjectcMesh(objPositions.at(12), Cube_ProfiledWood);
+
+
+	//newPlane(			cVector3d(-3.0, (roomWidth / 2), 0.75), myRightLableSF);
+	newObjectcMultiMesh(cVector3d(-3.0, ((roomWidth / 2) - 0.5), -0.005), Property_3ds, "table.3ds", 1);
+	newObjectcMesh(objPositions.at(13), Cube_Styrofoam);
+
+
+	//newPlane(cVector3d(-4.0, -(roomWidth / 2), 0.75), myLeftLablePW);
+	//newObjectcMultiMesh(cVector3d(-4.0, (-(roomWidth / 2) + 0.5), -0.005), Property_3ds, "table.3ds", 1);
+	//newObjectcMesh(objPositions.at(14), Cube_FineRubber);
+
+
+
+	//newPlane(			cVector3d(-2.0, -(roomWidth / 2), 0.75), myLeftLablePW);
+	newObjectcMultiMesh(cVector3d(-2.0, ((roomWidth / 2) - 0.5), -0.005), Property_3ds, "table.3ds", 1);
+	newObjectcMesh(objPositions.at(14), Cube_Leather);
+
+	//newPlane(			cVector3d(-1.0, -(roomWidth / 2), 0.75), myLeftLablePW);
+	newObjectcMultiMesh(cVector3d(-1.0, ((roomWidth / 2) - 0.5), -0.005), Property_3ds, "table.3ds", 1);
+	newObjectcMesh(objPositions.at(15), Cube_LinedAluminum);
+
+	newPlane(			cVector3d(0.0, (roomWidth / 2), 0.75), myLeftLablePW);
+	newObjectcMultiMesh(cVector3d(0.0, ((roomWidth / 2) - 0.5), -0.005), Property_3ds, "table.3ds", 1);
+	newObjectcMesh(objPositions.at(16), Cube_MeshAluminum);
+
+
+	newPlane(			cVector3d(1.0, (roomWidth / 2), 0.75), myRightLableGS);
+	newPlane(			cVector3d(1.0, (roomWidth / 2), 0.5), myRightLableCaution);
+	newObjectcMultiMesh(cVector3d(1.0, ((roomWidth / 2) - 0.5), -0.005), Property_3ds, "table.3ds", 1);
+	newObjectcMesh(objPositions.at(17), Cube_GlowingMetal); ////
+
+
+	newPlane(			cVector3d(2.0, (roomWidth / 2), 0.75), myLeftLableSO);
+	newObjectcMultiMesh(cVector3d(2.0, ((roomWidth / 2) - 0.5), -0.005), Property_3ds, "table.3ds", 1);
+	newObjectcMesh(objPositions.at(18), Cube_WoodOak);
+
+
+
+
+
+
+
+
+
+	/*
+
+
+	newPlane(cVector3d(2.0, (roomWidth / 2), 0.75), myRightLableFW);
+	newObjectcMultiMesh(cVector3d(5.0, ((roomWidth / 2) - 0.5), -0.005), Property_3ds, "table.3ds", 1);
+	newObjectcMesh(objPositions.at(16), Cube_Ice);
+
+	*/
 
 	// Print how many objects got created
 	cout << "Created " << objectCounter  << " materialSamples." << endl;
 
 	// Print how many 3ds objects got created
 	cout << "Created " << object3dsCounter << " 3ds objects." << endl;
-	
-	
-	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	//--------------------------------------------------------------------------
 	// START SIMULATION
 	//--------------------------------------------------------------------------
@@ -1068,6 +1134,7 @@ void updateHaptics(void)
 		// HAPTIC FORCE COMPUTATION
 		/////////////////////////////////////////////////////////////////////
 
+
 		// compute global reference frames for each object
 		world->computeGlobalPositions(true);
 
@@ -1079,57 +1146,48 @@ void updateHaptics(void)
 		tool->setDeviceGlobalRot(Rot);
 		pos = tool->getDeviceLocalPos();
 		tool->setDeviceGlobalPos(Rot*pos + currentPosition + currentDirection);
-
-		///
-		//cVector3d posHaptic = Rot*pos + currentPosition + currentDirection;
-		//device->setLocalPos(posHaptic);
-		///
-
 		devSpeed = tool->getDeviceLocalLinVel();
+		
 
+
+
+		//cout << tool->getDeviceLocalPos() << endl;
+		cout << devSpeed.length() << endl;
 		// compute interaction forces
-		tool->computeInteractionForces(); ///
-		//computeInteractionForcesStribeck(tool, devSpeed);
-
-		///
-		cVector3d currF = tool->getDeviceGlobalForce();
-		currF.clamp(10);
-		tool->setDeviceGlobalForce(currF);
-		//cout << currF.str() << endl;
-		///
-
-		//cout <<  " Speed:  " << devSpeed.length() << endl;
-
+		tool->computeInteractionForces();
+		//cout << delta->getLinearVelocity()<< endl;
 		bool displayWeight = false;
 		for (std::vector<cVector3d>::iterator it = objPositions.begin(); it != objPositions.end(); ++it)
 		{
 			cVector3d pos2 = *it;
-			//cout << " Speed:  " << devSpeed.length() << endl;
-			
 			//cout << pos2 << endl;
+			//cout << tool->getDeviceGlobalPos() << endl;
 			//cout << (pos2 - tool->getDeviceGlobalPos()).length() << endl;
-			if ((pos2 - tool->getDeviceGlobalPos()).length() < 1.4)
-			{			
-				//cout << " Speed:  " << devSpeed.length() << endl;
+			
+			if ((pos2 - tool->getDeviceGlobalPos()).length() < 0.4)
+			{
+				//cout << it - objPositions.begin() << endl;
 				currentObjectToLift = it - objPositions.begin() + 1;
 				
 				unsigned char* sample = object[currentObjectToLift]->m_material->getAudioFrictionBuffer()->getData();
+			
 
-				//cout <<  selectedAudioBuffer << " Speed:  " << devSpeed.length() << endl;
 
-				if (devSpeed.length() < 0.2 )
+				cout << currentObjectToLift << "   " << selectedAudioBuffer << "   " << devSpeed.length() << endl;
+
+				if (devSpeed.length() < 0.8 )
 				{	
 					if(selectedAudioBuffer != 1)
 						object[currentObjectToLift]->m_material->setAudioFrictionBuffer(audioBuffer[currentObjectToLift]);
 					selectedAudioBuffer = 1;
 				}
-				else if (devSpeed.length() > 0.2  && devSpeed.length() < 0.4)
+				else if (devSpeed.length() > 0.8  && devSpeed.length() < 1.2)
 				{	
 					if(selectedAudioBuffer != 2)
 						object[currentObjectToLift]->m_material->setAudioFrictionBuffer(audioBufferV2[currentObjectToLift]);
 					selectedAudioBuffer = 2;
 				}
-				else if (devSpeed.length() > 0.4  )
+				else if (devSpeed.length() >1.2  )
 				{	
 					if(selectedAudioBuffer != 3)
 						object[currentObjectToLift]->m_material->setAudioFrictionBuffer(audioBufferV3[currentObjectToLift]);
@@ -1137,8 +1195,14 @@ void updateHaptics(void)
 				}
 				
 
+
+
+
+
 				//cout << currentObjectToLift << endl;
 				/*
+
+
 				cAudioSource* audioSourceDrill;
 				cAudioBuffer* audioBufferDrill;
 				audioBufferDrill = audioDevice->newAudioBuffer();
@@ -1167,13 +1231,17 @@ void updateHaptics(void)
 				// play sound
 				audioSourceDrill->play();
 
+
 				// updatehaptics:
 				audioSourceDrill->getSourceVel
 				audioSourceDrill->getPosTime
 				audioSourceDrill->setGain(DRILL_AUDIO_GAIN * drillVelocity);
+
 				*/
 
+
 				//cout << object[currentObjectToLift]->m_material->getAudioFrictionBuffer()->getBitsPerSample() << endl;
+
 
 				if(currentObjectToLift == 9)
 				{
@@ -1182,12 +1250,16 @@ void updateHaptics(void)
 						sendTemperature(4);
 					else
 						sendReset();*/
+
+
 				}
 					
 				
+
 				//cout << object[currentObjectToLift]->m_material->getAudioFrictionBuffer()->getNumSamples() << endl;
 				
-				/*
+
+/*
 				// resolution (bitsPerSample) = 16 bits!
 				unsigned int intSample;
 				double accValue;
@@ -1201,13 +1273,17 @@ void updateHaptics(void)
 					tactileDataIndex+=2;
 				}
 				else
-				{				
+				{
+					
 					intSample = 256 * unsigned int(sample[tactileDataIndex+1]) + unsigned int(sample[tactileDataIndex]);
 					accValue = ( 2.0*double(int16_t(intSample)) )  / 65535.0;
 					cout << accValue << endl;
 					tactileDataIndex = 0;
 				}
-				*/
+
+	*/
+
+
 
 				if (keyState[(unsigned char)'l'] == 1)
 				{
@@ -1330,7 +1406,7 @@ void drawCoordinates(cVector3d position, double length, double width)
 
 //------------------------------------------------------------------------------
 
-int newObjectcMesh(cVector3d position, MyProperties properties) ///
+int newObjectcMesh(cVector3d position, MyProperties properties)
 {
 	if (objectCounter < MAX_OBJECT_COUNT)
 	{
@@ -1366,7 +1442,7 @@ int newObjectcMesh(cVector3d position, MyProperties properties) ///
 		break;
 
 	case(complex3ds) :
-
+		
 		break;
 	}
 
@@ -1380,10 +1456,10 @@ int newObjectcMesh(cVector3d position, MyProperties properties) ///
 		cout << STR_ADD("./resources/images/", properties.textureImage) << endl;
 		cout << "ERROR: Cannot load texture file!" << endl;
 	}
-	/*	if (texture->loadFromFile(RESOURCE_PATH(STR_ADD("images/", properties.textureImage))) != 1)
+/*	if (texture->loadFromFile(RESOURCE_PATH(STR_ADD("images/", properties.textureImage))) != 1)
 	{
-	cout << RESOURCE_PATH(STR_ADD("images/", properties.textureImage)) << endl;
-	cout << "ERROR: Cannot load texture file!" << endl;
+		cout << RESOURCE_PATH(STR_ADD("images/", properties.textureImage)) << endl;
+		cout << "ERROR: Cannot load texture file!" << endl;
 	}*/
 
 	// apply texture to object
@@ -1426,7 +1502,7 @@ int newObjectcMesh(cVector3d position, MyProperties properties) ///
 	{
 		cout << "ERROR: Cannot load normal map file!" << endl;
 		//normalMap->createMap(object[objectCounter]->m_texture);
-
+		
 	}
 	else
 	{
@@ -1444,7 +1520,7 @@ int newObjectcMesh(cVector3d position, MyProperties properties) ///
 		if (properties.shape != sphere)
 			object[objectCounter]->m_triangles->computeBTN();
 
-		// #################################################################
+	// #################################################################
 	}
 
 
@@ -1533,8 +1609,10 @@ int newObjectcMesh(cVector3d position, MyProperties properties) ///
 
 			impactAudioBuffer[audioBufferCounter] = audioDevice->newAudioBuffer();
 
+
 			// load audio from file
-			if (audioBuffer[audioBufferCounter]->loadFromFile(STR_ADD("./resources/sounds/","Test1.wav" )) != 1)
+			
+			if (audioBuffer[audioBufferCounter]->loadFromFile(STR_ADD("./resources/sounds/", "Test1.wav")) != 1)
 			{
 				cout << "ERROR: Cannot load audio file: " << STR_ADD("./resources/sounds/", "Test1.wav") << endl;
 			}
@@ -1546,11 +1624,28 @@ int newObjectcMesh(cVector3d position, MyProperties properties) ///
 			{
 				cout << "ERROR: Cannot load audio file: " << STR_ADD("./resources/sounds/", "Test3.wav") << endl;
 			}
+				/*
+			// load audio from file
+			if (audioBuffer[audioBufferCounter]->loadFromFile(STR_ADD("./resources/sounds/", )) != 1)
+			{
+				cout << "ERROR: Cannot load audio file: " << STR_ADD("./resources/sounds/", properties.audio) << endl;
+			}
+			if (audioBufferV2[audioBufferCounter]->loadFromFile(STR_ADD("./resources/sounds/V2/", "test80.wav")) != 1) //"test.wav"
+			{
+				cout << "ERROR: Cannot load audio file: " << STR_ADD("./resources/sounds/V2/", "test80.wav") << endl;
+			}
+			if (audioBufferV3[audioBufferCounter]->loadFromFile(STR_ADD("./resources/sounds/V3/", "test200.wav")) != 1)
+			{
+				cout << "ERROR: Cannot load audio file: " << STR_ADD("./resources/sounds/V3/", "test200.wav") <<  endl;
+			}
+			*/
 
 			if (impactAudioBuffer[audioBufferCounter]->loadFromFile(STR_ADD("./resources/sounds/", properties.audioImpact)) != 1)
 			{
 				cout << "ERROR: Cannot load impact audio file!" << endl;
 			}
+
+
 
 			// here we convert all files to mono. this allows for 3D sound support. if this code
 			// is commented files are kept in stereo format and 3D sound is disabled. Compare both!
@@ -1609,8 +1704,11 @@ int newObjectcMesh(cVector3d position, MyProperties properties) ///
 }
 
 
-int newComplexObject(cVector3d position, MyProperties properties, string objectFile, double scalingFactor) ///
+
+
+int newComplexObject(cVector3d position, MyProperties properties)
 {
+
 	// create a virtual mesh
 	tooth = new cMultiMesh();
 
@@ -1618,12 +1716,28 @@ int newComplexObject(cVector3d position, MyProperties properties, string objectF
 	world->addChild(tooth);
 
 	// set the position and orientation of the object at the center of the world
-	tooth->setLocalPos(position.x(), position.y(), position.z());
-	tooth->rotateAboutGlobalAxisDeg(properties.orientation.axis, properties.orientation.rotation);
-
+	tooth->setLocalPos(0.0, 0.0, 0.0);
+	tooth->rotateAboutGlobalAxisDeg(cVector3d(0.0, 0.0, 1.0), 0);
+	tooth->rotateAboutGlobalAxisDeg(cVector3d(0.0, 1.0, 0.0), 45);
+	tooth->rotateAboutGlobalAxisDeg(cVector3d(1.0, 0.0, 0.0), 90);
 	// load an object file
-	if ((tooth->loadFromFile(STR_ADD("./resources/obj/", objectFile))) != 1) //"vase2.obj", frog3.obj
+	bool fileload;
+	//fileload = tooth->loadFromFile(RESOURCE_PATH("../resources/models/tooth/tooth.obj"));
+	//printf("%s", RESOURCE_PATH("."));
+	//getchar();
+	fileload = tooth->loadFromFile(STR_ADD("./resources/obj/", "vase2.obj"));  //frog3.obj
+
+	if (!fileload)
 	{
+#if defined(_MSVC)
+		fileload = tooth->loadFromFile(STR_ADD("./resources/obj/", "vase2.obj")); //frog3.obj
+		//fileload = tooth->loadFromFile("../../../bin/resources/models/own/frog2.obj");
+
+#endif
+	}
+	if (!fileload)
+	{
+
 		printf("Error - 3D Model failed to load correctly.\n");
 		getchar();
 		close();
@@ -1636,14 +1750,9 @@ int newComplexObject(cVector3d position, MyProperties properties, string objectF
 
 	// compute a boundary box
 	tooth->computeBoundaryBox(true);
-	// get dimensions of object
-	double size = cSub(tooth->getBoundaryMax(), tooth->getBoundaryMin()).length();
 
-	// resize object to screen
-	if (size > 0.001)
-	{
-		tooth->scale(scalingFactor / size);
-	}
+	// resize tooth to screen
+	tooth->scale(0.003);
 
 	// compute collision detection algorithm
 	tooth->createAABBCollisionDetector(TOOL_RADIUS);
@@ -1651,15 +1760,27 @@ int newComplexObject(cVector3d position, MyProperties properties, string objectF
 	// define a default stiffness for the object
 	tooth->setStiffness(properties.stiffness * maxStiffness, true);
 
+	
+
+
+
 	// create a texture
 	cTexture2dPtr texture = cTexture2d::create();
 
+	/*cout << STR_ADD("./resources/images/", properties.textureImage) << endl;
 	// load texture image from file
 	if (texture->loadFromFile(STR_ADD("./resources/images/", properties.textureImage)) != 1)
 	{
 		cout << STR_ADD("./resources/images/", properties.textureImage) << endl;
 		cout << "ERROR: Cannot load texture file!" << endl;
-	}
+	}*/
+
+
+	//if (texture->loadFromFile(RESOURCE_PATH(STR_ADD("images/", properties.textureImage))) != 1)
+	//{
+	//	cout << RESOURCE_PATH(STR_ADD("images/", properties.textureImage)) << endl;
+	//	cout << "ERROR: Cannot load texture file!" << endl;
+	//}
 
 	// apply texture to object
 	tooth->setTexture(texture);
@@ -1672,6 +1793,7 @@ int newComplexObject(cVector3d position, MyProperties properties, string objectF
 
 	// set material properties to light gray
 	tooth->m_material->setWhite();
+
 
 	// define a default stiffness for the object
 	tooth->m_material->setStiffness(properties.stiffness * maxStiffness);
@@ -1695,7 +1817,8 @@ int newComplexObject(cVector3d position, MyProperties properties, string objectF
 	if (normalMap->loadFromFile(STR_ADD("./resources/images/", properties.normalImage)) != 1)
 	{
 		cout << "ERROR: Cannot load normal map file!" << endl;
-		//normalMap->createMap(object[objectCounter]->m_texture);		
+		//normalMap->createMap(object[objectCounter]->m_texture);
+		
 	}
 	else
 	{
@@ -1707,9 +1830,15 @@ int newComplexObject(cVector3d position, MyProperties properties, string objectF
 
 		// #################################################################
 		// THIS RAISES PROBLEMS FOR SHPERES !!!
+
 		// compute tangent vectors
-		// #################################################################
+
+
+	// #################################################################
 	}
+
+
+
 
 
 	//--------------------------------------------------------------------------
@@ -1734,7 +1863,7 @@ int newComplexObject(cVector3d position, MyProperties properties, string objectF
 
 
 
-	/*
+/*
 	// create fragment shader
 	cShaderPtr fragmentShader = cShader::create(C_FRAGMENT_SHADER);
 
@@ -1742,9 +1871,9 @@ int newComplexObject(cVector3d position, MyProperties properties, string objectF
 	fileload = fragmentShader->loadSourceFile("../resources/shaders/bump.frag");
 	if (!fileload)
 	{
-	#if defined(_MSVC)
-	fileload = fragmentShader->loadSourceFile("../../../bin/resources/shaders/bump.frag");
-	#endif
+#if defined(_MSVC)
+		fileload = fragmentShader->loadSourceFile("../../../bin/resources/shaders/bump.frag");
+#endif
 	}
 
 	// create program shader
@@ -1770,11 +1899,22 @@ int newComplexObject(cVector3d position, MyProperties properties, string objectF
 
 	// set the orientation
 	//tooth->rotateAboutLocalAxisDeg(properties.orientation.axis, properties.orientation.rotation);
-	*/
+*/
+
+
+
+
+
+
+
+
+
+
 
 	//--------------------------------------------------------------------------
 	// SETUP AUDIO MATERIAL
 	//--------------------------------------------------------------------------
+	/*
 #if 1
 	// check if audio gain is bigger than zero
 	if (properties.audioGain > 0.0f)
@@ -1817,7 +1957,7 @@ int newComplexObject(cVector3d position, MyProperties properties, string objectF
 		}
 	}
 #endif
-
+	*/
 	//--------------------------------------------------------------------------
 	// SETUP TEMPERATURE REGIONS
 	//--------------------------------------------------------------------------
@@ -1851,9 +1991,17 @@ int newComplexObject(cVector3d position, MyProperties properties, string objectF
 
 
 
-int newObjectcMultiMesh(cVector3d position, MyProperties properties, string objectFile, double scalingFactor) ///
+
+
+//------------------------------------------------------------------------------
+
+int newObjectcMultiMesh(cVector3d position, MyProperties properties, string objectFile, double scalingFactor)
 {
-	if (object3dsCounter >= MAX_OBJECT_COUNT)
+	if (object3dsCounter < MAX_OBJECT_COUNT)
+	{
+		//cout << "Creating new object Nr. " << object3dsCounter + 1 << " -> Used 3ds file: " << objectFile << endl;
+	}
+	else
 	{
 		cout << "Error: Could not create new object. Maximal number of objects reached!" << endl;
 		return -1;
@@ -1881,7 +2029,7 @@ int newObjectcMultiMesh(cVector3d position, MyProperties properties, string obje
 	// resize object to screen
 	if (size > 0.001)
 	{
-		object3ds[object3dsCounter]->scale(scalingFactor / size);
+		object3ds[object3dsCounter]->scale(1 / (size * scalingFactor));
 	}
 
 	// create a texture
@@ -1911,13 +2059,17 @@ int newObjectcMultiMesh(cVector3d position, MyProperties properties, string obje
 	// enable display list for faster graphic rendering
 	object3ds[object3dsCounter]->setUseDisplayList(true);
 
+	// center object in scene
+	//object3ds[object3dsCounter]->setLocalPos(-1.0 * object3ds[object3dsCounter]->getBoundaryCenter());
+
 	// rotate object in scene
-	//object3ds[object3dsCounter]->rotateExtrinsicEulerAnglesDeg(0, 0, 0, C_EULER_ORDER_XYZ);
+	object3ds[object3dsCounter]->rotateExtrinsicEulerAnglesDeg(0, 0, 0, C_EULER_ORDER_XYZ);
 
 	// todo specular reflections for metals
 	object3ds[object3dsCounter]->m_material->m_specular = cColorf(0.0,1.0,1.0);
 
 #if 1
+
 	// set haptic properties
 	cMaterial mat;
 	mat.setHapticTriangleSides(true, true);
@@ -1925,6 +2077,7 @@ int newObjectcMultiMesh(cVector3d position, MyProperties properties, string obje
 	mat.setStaticFriction(properties.staticFriction);
 	mat.setDynamicFriction(properties.dynamicFriction);
 
+	
 
 	object3ds[object3dsCounter]->setMaterial(mat);
 	object3ds[object3dsCounter]->computeAllNormals();
@@ -2033,7 +2186,7 @@ int newObjectcMultiMesh(cVector3d position, MyProperties properties, string obje
 
 //------------------------------------------------------------------------------
 
-int newPlane(cVector3d position, MyProperties properties, double scalingFactor = 1.0){
+int newPlane(cVector3d position, MyProperties properties){
 
 	// create a virtual mesh
 	cMesh* plane = new cMesh();
@@ -2045,7 +2198,7 @@ int newPlane(cVector3d position, MyProperties properties, double scalingFactor =
 	plane->setLocalPos(position.x(), position.y(), position.z());
 
 	// create shape
-	cCreatePlane(plane, properties.size.x()*scalingFactor, properties.size.y()*scalingFactor);
+	cCreatePlane(plane, properties.size.x(), properties.size.y());
 	plane->setUseDisplayList(true);
 
 	// create collision detector
@@ -2090,219 +2243,8 @@ int newPlane(cVector3d position, MyProperties properties, double scalingFactor =
 	// set the orientation
 	plane->rotateAboutLocalAxisDeg(properties.orientation.axis, properties.orientation.rotation);
 
-	if (useVertexShader)
-	{
-		//--------------------------------------------------------------------------
-		// CREATE SHADERS
-		//--------------------------------------------------------------------------
-
-		// create vertex shader
-		cShaderPtr vertexShader = cShader::create(C_VERTEX_SHADER);
-
-		// load vertex shader from file
-		bool fileload = vertexShader->loadSourceFile("../resources/shaders/bump.vert");
-
-		if (!fileload)
-		{
-#if defined(_MSVC)
-			fileload = vertexShader->loadSourceFile("../../../bin/resources/shaders/bump.vert");
-#endif
-		}
-
-		// create fragment shader
-		cShaderPtr fragmentShader = cShader::create(C_FRAGMENT_SHADER);
-
-		// load fragment shader from file
-		fileload = fragmentShader->loadSourceFile("../resources/shaders/bump.frag");
-
-		if (!fileload)
-		{
-#if defined(_MSVC)
-			fileload = fragmentShader->loadSourceFile("../../../bin/resources/shaders/bump.frag");
-#endif
-		}
-
-		// create program shader
-		cShaderProgramPtr programShader = cShaderProgram::create();
-
-		// assign vertex shader to program shader
-		programShader->attachShader(vertexShader);
-
-		// assign fragment shader to program shader
-		programShader->attachShader(fragmentShader);
-
-		// assign program shader to object
-		plane->setShaderProgram(programShader);
-
-		// link program shader
-		programShader->linkProgram();
-
-		// set uniforms
-		programShader->setUniformi("uColorMap", 0);
-		programShader->setUniformi("uShadowMap", 0);
-		programShader->setUniformi("uNormalMap", 2);
-		programShader->setUniformf("uInvRadius", 0.0f);
-	}
-	
-	
-	
-	
 	return 0;
 }
-
-//v2 must be the connection of v1 & v3; v1 & v2 must have the same z-coordinate
-// generates planes in both directions 
-int newPlaneFromVertices(cVector3d v1, cVector3d v2, cVector3d v3ceil, MyProperties properties){ 
-
-	cVector3d v21 = v2 - v1;
-	cVector3d v23 = v2 - v3ceil;
-	if (abs(v21.dot(v23)) > 1e-3)
-	{
-		cout << endl << "  ERROR: Vertices don't form a plane!" << endl;
-		return -1;
-	}
-	cVector3d center = v2 - 0.5*(v21 + v23);		
-
-	double lengthX = v21.length();
-	double lengthY = v23.length();
-	cVector3d startDir1 = cVector3d(0.0, 1.0, 0.0);
-	cVector3d startDir2 = cVector3d(1.0, 0.0, 0.0);
-	double angleX = acos(v23.dot(startDir1) / v23.length());
-	if (isnan(angleX))
-		angleX = 0.0;
-	double angleZ = acos(v21.dot(startDir2) / v21.length());
-	if (isnan(angleZ))
-		angleZ = 0.0;
-	if (v21.y() < 0)
-		angleZ = -angleZ;
-
-	cVector3d combAxis1;
-	double combAngle1;
-
-	cMatrix3d rot11 = cMatrix3d(cVector3d(1.0, 0.0, 0.0), angleX);
-	cMatrix3d rot2 = cMatrix3d(cVector3d(0.0, 0.0, 1.0), angleZ);
-	cMatrix3d totRot1;
-	rot2.mulr(rot11, totRot1);
-	totRot1.toAxisAngle(combAxis1, combAngle1);
-	combAngle1 = combAngle1 / PI * 180;
-
-	// create a virtual mesh
-	cMesh* plane1 = new cMesh();
-
-	// add object to world
-	world->addChild(plane1);
-
-	// set the position of the object
-	plane1->setLocalPos(center.x(), center.y(), center.z());
-
-	// create shape
-	cCreatePlane(plane1, lengthX, lengthY);
-	plane1->setUseDisplayList(true);
-
-	// create collision detector
-	plane1->createAABBCollisionDetector(TOOL_RADIUS);
-
-	// create a texture
-	cTexture2dPtr textureFloor = cTexture2d::create();
-
-	//"./resources/images/sand-wall.png"
-	if (textureFloor->loadFromFile(RESOURCE_PATH(STR_ADD("images/", properties.textureImage))) != 1)
-	{
-		cout << "ERROR: Cannot load texture file!" << endl;
-	}
-
-	// apply texture to object
-	plane1->setTexture(textureFloor);
-
-	// create normal map from texture data
-	cNormalMapPtr normalMap1 = cNormalMap::create();
-	normalMap1->createMap(plane1->m_texture);
-	plane1->m_normalMap = normalMap1;
-
-	// enable texture rendering 
-	plane1->setUseTexture(true);
-
-	// Since we don't need to see our polygons from both sides, we enable culling.
-	plane1->setUseCulling(false);
-
-	///plane1->setUseTransparency(false); 
-
-	// disable material properties and lighting
-	plane1->setUseMaterial(false);
-
-	// set material properties to light gray
-	plane1->m_material->setWhite();
-
-	// set haptic properties
-	plane1->m_material->setStiffness(properties.stiffness* maxStiffness);
-	plane1->m_material->setStaticFriction(properties.staticFriction);
-	plane1->m_material->setDynamicFriction(properties.dynamicFriction);
-	plane1->m_material->setTextureLevel(properties.textureLevel);
-	plane1->m_material->setHapticTriangleSides(true, false);
-
-	// set the orientation
-	plane1->rotateAboutLocalAxisDeg(combAxis1, combAngle1);
-
-	if (useVertexShader)
-	{
-		//plane1->m_material->m_specular.setBlack();
-		//--------------------------------------------------------------------------
-		// CREATE SHADERS
-		//--------------------------------------------------------------------------
-
-		// create vertex shader
-		cShaderPtr vertexShader = cShader::create(C_VERTEX_SHADER);
-
-		// load vertex shader from file
-		bool fileload = vertexShader->loadSourceFile("../resources/shaders/bump.vert");
-
-		if (!fileload)
-		{
-#if defined(_MSVC)
-			fileload = vertexShader->loadSourceFile("../../../bin/resources/shaders/bump.vert");
-#endif
-		}
-
-		// create fragment shader
-		cShaderPtr fragmentShader = cShader::create(C_FRAGMENT_SHADER);
-
-		// load fragment shader from file
-		fileload = fragmentShader->loadSourceFile("../resources/shaders/bump.frag");
-
-		if (!fileload)
-		{
-#if defined(_MSVC)
-			fileload = fragmentShader->loadSourceFile("../../../bin/resources/shaders/bump.frag");
-#endif
-		}
-
-		// create program shader
-		cShaderProgramPtr programShader = cShaderProgram::create();
-
-		// assign vertex shader to program shader
-		programShader->attachShader(vertexShader);
-
-		// assign fragment shader to program shader
-		programShader->attachShader(fragmentShader);
-
-		// assign program shader to object
-		plane1->setShaderProgram(programShader);
-
-		// link program shader
-		programShader->linkProgram();
-
-		// set uniforms
-		programShader->setUniformi("uColorMap", 0);
-		programShader->setUniformi("uShadowMap", 0);
-		programShader->setUniformi("uNormalMap", 2);
-		programShader->setUniformf("uInvRadius", 0.0f);
-	}
-	
-
-	return 0;
-}
-
-
 
 //------------------------------------------------------------------------------
 
@@ -2363,35 +2305,3 @@ int checkTempRegions()
 	return result;
 }
 
-
-
-void computeInteractionForcesStribeck(cToolCursor* tool, cVector3d devSpeed)
-{
-	if ((tool->m_hapticPoint->getNumCollisionEvents() == 1) && devSpeed.length() > 0.0001)
-	{
-		cGenericObject* collidedObj = tool->m_hapticPoint->m_algorithmFingerProxy->m_collisionEvents[0]->m_object;
-
-		//tool->computeInteractionForces();
-		cVector3d forceN = tool->m_hapticPoint->m_algorithmFingerProxy->computeForces(tool->getDeviceGlobalPos(), tool->getDeviceGlobalLinVel());
-		double F_N = forceN.length();
-
-		cVector3d stribeck_force, force_direction;
-		cVector3d result;
-		forceN.crossr(devSpeed, result);
-		result.crossr(forceN, force_direction);
-		force_direction.normalize();
-		double v = devSpeed.dot(force_direction); // oder nur Teil senkrecht zu F_N?
-
-		double StFr = collidedObj->m_material->getStaticFriction();
-		double DyFr = collidedObj->m_material->getDynamicFriction();
-		double v_brk = 0.1; //default: 0.1 m/s
-		double f_visc = 1.0; /// add to Properties
-
-		stribeck_force = (F_N * (StFr - DyFr) * exp(-(pow((v / (sqrt(2)*v_brk)), 2))) *(v / (sqrt(2)*v_brk)) + DyFr*F_N * tanh(v / (0.1*v_brk)) + f_visc*v)
-			* force_direction;
-
-		tool->setDeviceGlobalForce(stribeck_force + forceN);
-	}
-	
-
-}
