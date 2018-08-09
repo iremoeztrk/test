@@ -129,6 +129,7 @@ int originalactivated = 1;
 int lpcactivated = 0;
 int majorfreqactivated = 0;
 int koriginal = 0;
+double GlobalSpeed;
 string name;
 
 int handspeedincmpersecond = 0;
@@ -1678,15 +1679,15 @@ int newObjectcMesh(cVector3d position, MyProperties properties) ///
 					}		
 					if (audioBuffer1[buf]->loadFromFile(STR_ADD(STR_ADD("./resources/sounds/lpc/", properties.audio), STR_ADD(to_string(buf + 1), ".wav"))) != 1)
 					{
-						cout << "ERROR: Cannot load audio file: " << STR_ADD("./resources/sounds/", properties.audio) << endl;
+						cout << "ERROR: Cannot load audio file1: " << STR_ADD(STR_ADD("./resources/sounds/lpc/", properties.audio), STR_ADD(to_string(buf + 1), ".wav")) << endl;
 					}
 					if (audioBuffer2[buf]->loadFromFile(STR_ADD(STR_ADD("./resources/sounds/major/", properties.audio), STR_ADD(to_string(buf + 1), ".wav"))) != 1)
 					{
-						cout << "ERROR: Cannot load audio file: " << STR_ADD("./resources/sounds/", properties.audio) << endl;
+						cout << "ERROR: Cannot load audio file2: " << STR_ADD("./resources/sounds/", properties.audio) << endl;
 					}
 					if (audioBuffer3[buf]->loadFromFile(STR_ADD(STR_ADD("./resources/sounds/künstlich_original/", properties.audio), STR_ADD(to_string(buf + 1), ".wav"))) != 1)
 					{
-						cout << "ERROR: Cannot load audio file: " << STR_ADD("./resources/sounds/", properties.audio) << endl;
+						cout << "ERROR: Cannot load audio file3: " << STR_ADD("./resources/sounds/", properties.audio) << endl;
 					}
 
 				}
@@ -2733,6 +2734,9 @@ void computeInteractionForcesStribeck(cToolCursor* tool, cVector3d currSpeed, cM
 	collision = false;
 	if ((tool->m_hapticPoint->getNumCollisionEvents() == 1) && currSpeed.length() > 0.0001)
 	{
+
+		GlobalSpeed = currGlobSpeed.length();
+		
 		collision = true;
 		cGenericObject* collidedObj = tool->m_hapticPoint->m_algorithmFingerProxy->m_collisionEvents[0]->m_object;
 		cVector3d forceN_dir = tool->m_hapticPoint->m_algorithmFingerProxy->m_collisionEvents[0]->m_globalNormal; ///
@@ -2911,7 +2915,7 @@ void computeInteractionForcesStribeck(cToolCursor* tool, cVector3d currSpeed, cM
 
 			}
 			*/
-			if (handspeedincmpersecond < 9.0)
+			if (GlobalSpeed  < 5.0)
 			{
 				if (originalactivated == 1)
 					
@@ -2927,7 +2931,7 @@ void computeInteractionForcesStribeck(cToolCursor* tool, cVector3d currSpeed, cM
 					collidedObj->m_material->setAudioFrictionBuffer(audioBuffer3[0]);
 				
 			}
-		else if (handspeedincmpersecond > 9.0  && handspeedincmpersecond < 18.0)
+			else if (GlobalSpeed  > 5.0  && GlobalSpeed  < 10.0)
 		{
 			if (originalactivated == 1)
 
@@ -2942,7 +2946,7 @@ void computeInteractionForcesStribeck(cToolCursor* tool, cVector3d currSpeed, cM
 			else if (koriginal == 1)
 				collidedObj->m_material->setAudioFrictionBuffer(audioBuffer3[1]);
 		}
-		else if (handspeedincmpersecond > 18.0  && handspeedincmpersecond < 27.0)
+			else if (GlobalSpeed  > 10.0  && GlobalSpeed < 15.0)
 		{
 			if (originalactivated == 1)
 
@@ -2961,7 +2965,7 @@ void computeInteractionForcesStribeck(cToolCursor* tool, cVector3d currSpeed, cM
 			}
 			
 		}
-		else if (handspeedincmpersecond > 36.0  && handspeedincmpersecond < 45.0)
+			else if (GlobalSpeed > 15.0  && GlobalSpeed < 20.0)
 		{
 			if (originalactivated == 1)
 
@@ -2976,7 +2980,7 @@ void computeInteractionForcesStribeck(cToolCursor* tool, cVector3d currSpeed, cM
 			else if (koriginal == 1)
 				collidedObj->m_material->setAudioFrictionBuffer(audioBuffer3[3]);
 		}
-		else if (handspeedincmpersecond > 45.0  && handspeedincmpersecond < 54.0)
+			else if (GlobalSpeed > 20.0  && GlobalSpeed < 25.0)
 		{
 			if (originalactivated == 1)
 
@@ -2992,7 +2996,7 @@ void computeInteractionForcesStribeck(cToolCursor* tool, cVector3d currSpeed, cM
 				collidedObj->m_material->setAudioFrictionBuffer(audioBuffer3[4]);
 		}
 
-		else if (handspeedincmpersecond > 54.0  && handspeedincmpersecond < 63.0)
+			else if (GlobalSpeed > 25.0  && GlobalSpeed < 30.0)
 		{
 			if (originalactivated == 1)
 
@@ -3007,7 +3011,7 @@ void computeInteractionForcesStribeck(cToolCursor* tool, cVector3d currSpeed, cM
 			else if (koriginal == 1)
 				collidedObj->m_material->setAudioFrictionBuffer(audioBuffer3[5]);
 		}
-		else if (handspeedincmpersecond > 63.0  && handspeedincmpersecond < 70.0)
+			else if (GlobalSpeed > 30.0  && GlobalSpeed < 35.0)
 		{
 			if (originalactivated == 1)
 
@@ -3022,7 +3026,7 @@ void computeInteractionForcesStribeck(cToolCursor* tool, cVector3d currSpeed, cM
 			else if (koriginal == 1)
 				collidedObj->m_material->setAudioFrictionBuffer(audioBuffer3[6]);
 		}
-		else if (handspeedincmpersecond > 70.0  && handspeedincmpersecond < 75.0)
+			else if (GlobalSpeed > 35.0  && GlobalSpeed < 40.0)
 		{
 			if (originalactivated == 1)
 
@@ -3037,7 +3041,7 @@ void computeInteractionForcesStribeck(cToolCursor* tool, cVector3d currSpeed, cM
 			else if (koriginal == 1)
 				collidedObj->m_material->setAudioFrictionBuffer(audioBuffer3[7]);
 		}
-		else if (handspeedincmpersecond > 75.0  && handspeedincmpersecond < 80.0)
+			else if (GlobalSpeed > 40.0  && GlobalSpeed < 45.0)
 		{
 			if (originalactivated == 1)
 
@@ -3052,7 +3056,7 @@ void computeInteractionForcesStribeck(cToolCursor* tool, cVector3d currSpeed, cM
 			else if (koriginal == 1)
 				collidedObj->m_material->setAudioFrictionBuffer(audioBuffer3[8]);
 		}
-		else if (handspeedincmpersecond > 80.0  && handspeedincmpersecond < 85.0)
+			else if (GlobalSpeed > 45.0)
 		{
 			if (originalactivated == 1)
 
