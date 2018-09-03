@@ -34,7 +34,7 @@ const double w = 0.5;
 
 void initWeights()
 {
-	weights.push_back(-2 *w);
+	weights.push_back(-0.22 *w);
 	weights.push_back(-0.3*w);
 	weights.push_back(-0.22*w);
 	weights.push_back(-0.5*w);
@@ -68,19 +68,19 @@ void initWeights()
 
 //						Texture,            NormalMap,          Audio,	Impact Audio,                    Shape,     Temperature, Stiffness, StaticFriction, DynamicFriction, TextureLevel,     AudioGain, AudioPitch, AudioPitchOffset);
 
-MyProperties myWall(	"whiteWall.jpg",	"",					"", "TactileSignal_Tap_CeramicTile.wav", MyShape(plane), 3, 0.8, 0.1, 0.1, 0.1, 0.0, 0.0, 0.0);
+MyProperties myWall(	"wallpaper2.jpg",	"DisplayImage_CeramicTile.jpg",					"", "TactileSignal_Tap_CeramicTile.wav", MyShape(plane), 3, 0.8/scal, 0.5, 0.2, 0.1/scal, 0.0, 0.0, 0.0);
 
-MyProperties myTiles(	"walls.jpg",		"",					"", "TactileSignal_Tap_CeramicTile.wav", MyShape(plane), 3, 0.8, 0.1, 0.1, 0.1, 0.0, 0.0, 0.0);
+MyProperties myTiles(	"walls.jpg",		"DisplayImage_CeramicTile.jpg",					"", "TactileSignal_Tap_CeramicTile.wav", MyShape(plane), 2, 0.8/scal, 0.1, 0.1, 0.1/scal, 0.0, 0.0, 0.0);
 
-MyProperties myFloor(	"floor1small.jpg",	"",					"", "TactileSignal_Tap_CeramicTile.wav", MyShape(plane), 3, 0.8, 0.1, 0.1, 0.1, 0.0, 0.0, 0.0);
+MyProperties myFloor(	"floor1small.jpg",	"DisplayImage_CeramicTile.jpg",					"", "TactileSignal_Tap_CeramicTile.wav", MyShape(plane), 3, 0.8/scal, 0.1, 0.1, 0.1/scal, 0.0, 0.0, 0.0);
 
-MyProperties myWindow(	"window4.jpg",		"",					"", "TactileSignal_Tap_CeramicTile.wav", MyShape(plane), 3, 0.8, 0.1, 0.1, 0.1, 0.0, 0.0, 0.0);
+MyProperties myWindow(	"window4.jpg",		"DisplayImage_CeramicTile.jpg",					"", "TactileSignal_Tap_CeramicTile.wav", MyShape(plane), 3, 0.8/scal, 0.1, 0.1, 0.1/scal, 0.0, 0.0, 0.0);
 
-MyProperties myDoor(	"woodenDoor2.jpg",	"",					"", "TactileSignal_Tap_CeramicTile.wav", MyShape(plane), 3, 0.8, 0.1, 0.1, 0.1, 0.0, 0.0, 0.0);
+MyProperties myDoor(	"woodenDoor2.jpg",	"DisplayImage_CeramicTile.jpg",					"", "TactileSignal_Tap_CeramicTile.wav", MyShape(plane), 3, 0.8/scal, 0.1, 0.1, 0.1/scal, 0.0, 0.0, 0.0);
 
-MyProperties myFire(	"fire1.jpg",		"",					"", "TactileSignal_Tap_CeramicTile.wav", MyShape(plane), 3, 0.8, 0.1, 0.1, 0.1, 0.0, 0.0, 0.0);
+MyProperties myFire(	"fire1.jpg",		"DisplayImage_CeramicTile.jpg",					"", "TactileSignal_Tap_CeramicTile.wav", MyShape(plane), 5, 0.8/scal, 0.1, 0.1, 0.1/scal, 0.0, 0.0, 0.0);
 
-MyProperties myBricks(	"brick.jpg",		"brickNormal.jpg",	"", "TactileSignal_Tap_CeramicTile.wav", MyShape(plane), 3, 0.8, 0.1, 0.1, 0.1, 0.0, 0.0, 0.0);
+MyProperties myBricks(	"brick.jpg",		"brickNormal.jpg",	"", "TactileSignal_Tap_CeramicTile.wav", MyShape(plane), 3, 0.8/scal, 0.1, 0.1, 0.1, 0.0, 0.0, 0.0);
 
 
 
@@ -93,12 +93,16 @@ MyProperties myBricks(	"brick.jpg",		"brickNormal.jpg",	"", "TactileSignal_Tap_C
 const double a = 10*scal;
 
 //									 Texture,                          NormalMap,                            Audio,										Impact Audio,                               Size,                           Orientation,  Shape,     Temperature, Stiffness, StaticFriction, DynamicFriction, TextureLevel,     AudioGain, AudioPitch, AudioPitchOffset);
-MyProperties Cube_MeshAluminum(		"DisplayImage_MeshAluminum.JPG",	"MacroImage_MeshAluminum.JPG",		"TactileSignal_Move_New_RhombAluMesh.wav", "TactileSignal_Tap_MeshAluminum.wav", a*cVector3d(0.25, 0.25, 0.001), MyOrientation{ cVector3d(0.0, 0.0, 0.0), 0.0 }, MyShape(cube), 2, 0.7, 0.3, 0.2, 3.0, 1.0, 1.0, 0.0);
-MyProperties Cube_CeramicTile(		"DisplayImage_CeramicTile.JPG",		"MacroImage_CeramicTile.JPG",		"TactileSignal_Move_New_Marble.wav",		"TactileSignal_Tap_CeramicTile.wav",		a*cVector3d(0.25, 0.25, 0.007), MyOrientation{ cVector3d(0.0, 0.0, 0.0), 0.0 }, MyShape(cube),	2, 2.2,		0.1, 0.2, 1.0,		1.0, 1.0, 0.0);
+MyProperties Cube_MeshAluminum("DisplayImage_MeshAluminum.JPG", "MacroImage_MeshAluminum.JPG", "TactileSignal_Move_New_RhombAluMesh.wav", "TactileSignal_Tap_MeshAluminum.wav", a*cVector3d(0.25, 0.25, 0.001), MyOrientation{ cVector3d(0.0, 0.0, 0.0), 0.0 }, MyShape(cube), 2, 0.7 / scal, 0.3, 0.2, 3.0 / scal, 1.0, 1.0, 0.0);
+MyProperties Cube_CeramicTile("DisplayImage_CeramicTile.JPG", "MacroImage_CeramicTile.JPG", "TactileSignal_Move_New_Marble.wav", "TactileSignal_Tap_CeramicTile.wav", a*cVector3d(0.25, 0.25, 0.007), MyOrientation{ cVector3d(0.0, 0.0, 0.0), 0.0 }, MyShape(cube), 2, 2.2 / scal, 0.1, 0.2, 1.0 / scal, 1.0, 1.0, 0.0);
+MyProperties Cube_CoarseFoam(		"DisplayImage_CoarseFoam.JPG",		"MacroImage_CoarseFoam.JPG",		"CoarseFoam",	 "Test1.wav",		a/2*cVector3d(0.30, 0.20, 0.04), MyOrientation{ cVector3d(0.0, 0.0, 0.0), 0.0 }, MyShape(cube),		3, 0.2,		0.0, 0.1, 0.0,		1.0, 1.0, 0.0);
+MyProperties Cube_FineFoam("DisplayImage_Sponge.JPG", "MacroImage_Sponge.JPG", "FineFoam", "TactileSignal_Move_Sponge.wav", a / 2 * cVector3d(0.30, 0.20, 0.04), MyOrientation{ cVector3d(0.0, 0.0, 0.0), 0.0 }, MyShape(cube), 1, 0.2,  0.0, 0.1, 0.0,  1.0, 1.0, 0.0);
+MyProperties Cube_GraniteTile("DisplayImage_GraniteTile.JPG", "MacroImage_GraniteTile.JPG", "GraniteTile", "TactileSignal_Tap_GraniteTile.wav", a/2*cVector3d(0.30, 0.20, 0.04), MyOrientation{ cVector3d(0.0, 0.0, 0.0), 0.0 }, MyShape(cube), 1, 0.2,  0.0, 0.1, 0.0, 1.0, 1.0, 0.0);
+MyProperties Cube_CO("DisplayImage_CeramicTile.JPG", "MacroImage_CeramicTile.JPG", "CO", "TactileSignal_Tap_CoarseFoam.wav", a / 2 * cVector3d(0.30, 0.20, 0.04), MyOrientation{ cVector3d(0.0, 0.0, 0.0), 0.0 }, MyShape(cube), 3, 0.2, 0.0, 0.1, 0.0, 1.0, 1.0, 0.0);
+MyProperties Cube_Steinwolle("DisplayImage_Plastic.JPG", "MacroImage_Plastic.JPG", "Steinwolle", "TactileSignal_Tap_CoarseFoam.wav", a / 2 * cVector3d(0.30, 0.20, 0.04), MyOrientation{ cVector3d(0.0, 0.0, 0.0), 0.0 }, MyShape(cube), 3, 0.2, 0.0, 0.1, 0.0, 1.0, 1.0, 0.0);
 
 /*
 MyProperties Cube_LinedAluminum(	"DisplayImage_LinedAluminum.JPG",	"MacroImage_LinedAluminum.JPG",		"TactileSignal_Move_New_LinedAluMesh.wav", "TactileSignal_Tap_LinedAluminum.wav", a*cVector3d(0.25, 0.25, 0.001), MyOrientation{ cVector3d(0.0, 0.0, 0.0), 0.0 }, MyShape(cube), 2, 0.9, 0.1, 0.01, 2.0, 1.0, 1.0, 0.0);
-MyProperties Cube_CoarseFoam(		"DisplayImage_CoarseFoam.JPG",		"MacroImage_CoarseFoam.JPG",		"TactileSignal_Move_New_CoarseFoam.wav",	 "TactileSignal_Tap_CoarseFoam.wav",		a*cVector3d(0.25, 0.25, 0.02), MyOrientation{ cVector3d(0.0, 0.0, 0.0), 0.0 }, MyShape(cube),		3, 0.2,		1.1, 1.0, 1.0,		1.0, 1.0, 0.0);
 MyProperties Cube_Fabric(			"DisplayImage_Fabric.JPG",			"MacroImage_Fabric.JPG",			"TactileSignal_Move_Fabric.wav",			"TactileSignal_Tap_Fabric.wav",				a*cVector3d(0.25, 0.25, 0.005), MyOrientation{ cVector3d(0.0, 0.0, 0.0), 0.0 }, MyShape(cube),	3, 0.1,		0.4, 0.3, 1.0,		1.0, 1.0, 0.0);
 MyProperties Cube_FineRubber(		"DisplayImage_FineRubber.JPG",		"MacroImage_FineRubber.JPG",		"TactileSignal_Move_FineRubber.wav",		"TactileSignal_Tap_FineRubber.wav",			a*cVector3d(0.25, 0.25, 0.01), MyOrientation{ cVector3d(0.0, 0.0, 0.0), 0.0 }, MyShape(cube),		3, 0.6,		0.8, 0.2, 1.0,		1.0, 1.0, 0.0);
 MyProperties Cube_GraniteTile(		"DisplayImage_GraniteTile.JPG",		"MacroImage_GraniteTile.JPG",		"TactileSignal_Move_GraniteTile.wav",		"TactileSignal_Tap_GraniteTile.wav",		a*cVector3d(0.25, 0.25, 0.02), MyOrientation{ cVector3d(0.0, 0.0, 0.0), 0.0 }, MyShape(cube),		1, 2.5,		0.2, 0.1, 1.0,		4.0, 1.0, 0.0);
@@ -120,8 +124,9 @@ MyProperties Cube_Steel(			"G3StainlessSteel.JPG",				"G3StainlessSteelNormal.JP
 MyProperties Cube_WoodProfiled(		"G4ProfiledWoodPlate.JPG",			"G4ProfiledWoodPlateNormal.JPG",	"ProfiledWoodenPlate.wav",					"TactileSignal_Tap_CeramicTile.wav",		a*cVector3d(0.5, 0.35, 0.01), MyOrientation{ cVector3d(0.0, 0.0, 0.0), 0.0 }, MyShape(cube),		3, 0.9,		0.4, 0.4, 0.2,		1.0, 0.2, 1.0);
 MyProperties Cube_Rubber(			"G5ProfiledRubberPlate.JPG",		"G5ProfiledRubberPlateNormal.JPG",	"ProfiledRubberPlate.wav",					"TactileSignal_Tap_CeramicTile.wav",		a*cVector3d(0.5, 0.35, 0.01), MyOrientation{ cVector3d(0.0, 0.0, 0.0), 0.0 }, MyShape(cube),		3, 0.3,		0.9, 0.6, 0.8,		1.0, 0.2, 1.0);
 MyProperties Cube_Granite(			"G2GraniteTypeVeneziano.JPG",		"",									"Brick.wav",								"TactileSignal_Tap_CeramicTile.wav",		a*cVector3d(0.5, 0.35, 0.01), MyOrientation{ cVector3d(0.0, 0.0, 0.0), 0.0 }, MyShape(cube),		2, 1.0,		0.1, 0.1, 0.01,		1.0, 0.2, 1.0);
+MyProperties Cube_CoarseFoam(		"DisplayImage_CoarseFoam.JPG",		"MacroImage_CoarseFoam.JPG",		"TactileSignal_Move_New_CoarseFoam.wav",	 "TactileSignal_Tap_CoarseFoam.wav",		a/2*cVector3d(0.30, 0.20, 0.02), MyOrientation{ cVector3d(0.0, 0.0, 0.0), 0.0 }, MyShape(cube),		3, 0.2,		0.0, 0.1, 0.0,		1.0, 1.0, 0.0);
 */
 
-MyProperties TableProp_3ds("DisplayImage_ProfiledWood.JPG", "MacroImage_ProfiledWood.JPG", "TactileSignal_Move_New_ProfiledWoodenPlate.wav", "TactileSignal_Tap_ProfiledWood.wav", a*cVector3d(0.25, 0.25, 0.02), MyOrientation{ cVector3d(0.0, 0.0, 1.0), 90.0 }, MyShape(cube), 3, 1.5, 0.1, 0.1, 1.0, 1.0, 1.0, 0.0);
-MyProperties Plane_TableTop(		"DisplayImage_Tischdecke.JPG",		"",			"",		"",			cVector3d(1.0, 1.0, 0.02), MyOrientation{ cVector3d(0.0, 0.0, 1.0), 90.0 }, MyShape(plane),		3, 1.5,		0.1, 0.1, 1.0,		1.0, 1.0, 0.0);
-MyProperties VaseProp_obj("DisplayImage_Sandpaper.JPG", "MacroImage_Sandpaper.JPG", "TactileSignal_Move_Sandpaper.wav", "TactileSignal_Tap_Sandpaper.wav", a*cVector3d(0.25, 0.25, 0.003), MyOrientation{ cVector3d(1.0, 0.0, 0.0), 90.0 }, MyShape(cube), 3, 1.1, 1.2, 1.0, 1.0, 1.0, 1.0, 0.0);
+MyProperties TableProp_3ds("DisplayImage_ProfiledWood.JPG", "MacroImage_ProfiledWood.JPG", "TactileSignal_Move_New_ProfiledWoodenPlate.wav", "TactileSignal_Tap_ProfiledWood.wav", a*cVector3d(0.25, 0.25, 0.02), MyOrientation{ cVector3d(0.0, 0.0, 1.0), 90.0 }, MyShape(cube), 3, 1.5 / scal, 0.1, 0.1, 1.0 / scal, 1.0, 1.0, 0.0);
+MyProperties Plane_TableTop("DisplayImage_Tischdecke.JPG", "", "", "", cVector3d(1.0, 1.0, 0.02), MyOrientation{ cVector3d(0.0, 0.0, 1.0), 90.0 }, MyShape(plane), 3, 1.5 / scal, 0.1, 0.1, 1.0 / scal, 1.0, 1.0, 0.0);
+MyProperties VaseProp_obj("DisplayImage_Sandpaper.JPG", "MacroImage_Sandpaper.JPG", "TactileSignal_Move_Sandpaper.wav", "TactileSignal_Tap_Sandpaper.wav", a*cVector3d(0.25, 0.25, 0.003), MyOrientation{ cVector3d(1.0, 0.0, 0.0), 90.0 }, MyShape(cube), 3, 1.1 / scal, 1.2, 1.0, 1.0 / scal, 1.0, 1.0, 0.0);
