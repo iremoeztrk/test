@@ -89,12 +89,13 @@ vector<MyRegions*> tempRegion(MAX_REGIONS_COUNT);
 int tempRegionCounter = 0;
 int bufferarraysize = 10;//audioarray
 // a vector for audio buffer pointers
-vector<cAudioBuffer*> audioBuffer(bufferarraysize); 
-vector<cAudioBuffer*> audioBuffer1(bufferarraysize);
-vector<cAudioBuffer*> audioBuffer2(bufferarraysize);
-vector<cAudioBuffer*> audioBuffer3(bufferarraysize);
+vector<cAudioBuffer*> audioBuffer(50);
+vector<cAudioBuffer*> audioBuffer1(50);
+vector<cAudioBuffer*> audioBuffer2(50);
+vector<cAudioBuffer*> audioBuffer3(50);
 
-int selectedAudioBuffer = 1;
+
+
 
 vector<cAudioBuffer*> impactAudioBuffer(MAX_AUDIOBUFFER_COUNT);
 
@@ -148,6 +149,8 @@ double fr5[100];
 double fr6[100];
 double fr7[100];
 int once = 1;
+int number;
+
 
 
 
@@ -1685,11 +1688,13 @@ int newObjectcMesh(cVector3d position, MyProperties properties) ///
 			//audioBufferV2[audioBufferCounter] = audioDevice->newAudioBuffer();
 			//audioBufferV3[audioBufferCounter] = audioDevice->newAudioBuffer();
 			for (int buf = 0; buf < bufferarraysize; buf++){
-				audioBuffer[buf] = audioDevice->newAudioBuffer();
-				audioBuffer1[buf] = audioDevice->newAudioBuffer();
-				audioBuffer2[buf] = audioDevice->newAudioBuffer();
-				audioBuffer3[buf] = audioDevice->newAudioBuffer();
 
+			int	buf2 = objectCounter * 10 + buf;
+				audioBuffer[buf2] = audioDevice->newAudioBuffer();
+				audioBuffer1[buf2] = audioDevice->newAudioBuffer();
+				audioBuffer2[buf2] = audioDevice->newAudioBuffer();
+				audioBuffer3[buf2] = audioDevice->newAudioBuffer();
+				
 			}
 			 
 
@@ -1701,39 +1706,40 @@ int newObjectcMesh(cVector3d position, MyProperties properties) ///
 				
 				for (int buf = 0; buf < bufferarraysize; buf++){
 					
-					
-					if (audioBuffer[buf]->loadFromFile(STR_ADD(STR_ADD("./resources/sounds/original/", properties.audio), STR_ADD(to_string(buf+1), ".wav"))) != 1)
+					int	buf2 = objectCounter * 10 + buf;
+					if (audioBuffer[buf2]->loadFromFile(STR_ADD(STR_ADD("./resources/sounds/original/", properties.audio), STR_ADD(to_string(buf+1), ".wav"))) != 1)
 					{
 						cout << "ERROR: Cannot load audio file: " << STR_ADD(STR_ADD("./resources/sounds/", properties.audio), STR_ADD(to_string(buf),".wav")) << endl;
 						
 					}	
 					
 					
-					if (audioBuffer1[buf]->loadFromFile(STR_ADD(STR_ADD("./resources/sounds/lpc/", properties.audio), STR_ADD(to_string(buf + 1), ".wav"))) != 1)
+					if (audioBuffer1[buf2]->loadFromFile(STR_ADD(STR_ADD("./resources/sounds/lpc/", properties.audio), STR_ADD(to_string(buf + 1), ".wav"))) != 1)
 					{
 						cout << "ERROR: Cannot load audio file1: " << STR_ADD(STR_ADD("./resources/sounds/lpc/", properties.audio), STR_ADD(to_string(buf + 1), ".wav")) << endl;
 					}
 					
-					if (audioBuffer2[buf]->loadFromFile(STR_ADD(STR_ADD("./resources/sounds/major/", properties.audio), STR_ADD(to_string(buf + 1), ".wav"))) != 1)
+					if (audioBuffer2[buf2]->loadFromFile(STR_ADD(STR_ADD("./resources/sounds/major/", properties.audio), STR_ADD(to_string(buf + 1), ".wav"))) != 1)
 					{
 						cout << "ERROR: Cannot load audio file2: " << STR_ADD("./resources/sounds/", properties.audio) << endl;
 					}
 					
-					if (audioBuffer3[buf]->loadFromFile(STR_ADD(STR_ADD("./resources/sounds/künstlich_original/", properties.audio), STR_ADD(to_string(buf + 1), ".wav"))) != 1)
+					if (audioBuffer3[buf2]->loadFromFile(STR_ADD(STR_ADD("./resources/sounds/künstlich_original/", properties.audio), STR_ADD(to_string(buf + 1), ".wav"))) != 1)
 					{
 						cout << "ERROR: Cannot load audio file3: " << STR_ADD("./resources/sounds/", properties.audio) << endl;
 					}
-
+					
 				}
 				
 			
 			// here we convert all files to mono. this allows for 3D sound support. if this code
 			// is commented files are kept in stereo format and 3D sound is disabled. Compare both!
 			for (int buf = 0; buf < bufferarraysize; buf++){
-				audioBuffer[buf]->convertToMono();
-				audioBuffer1[buf]->convertToMono();
-				audioBuffer2[buf]->convertToMono();
-				audioBuffer3[buf]->convertToMono();
+				int	buf2 = objectCounter * 10 + buf;
+				audioBuffer[buf2]->convertToMono();
+				audioBuffer1[buf2]->convertToMono();
+				audioBuffer2[buf2]->convertToMono();
+				audioBuffer3[buf2]->convertToMono();
 			}
 
 			//audioBufferV2[audioBufferCounter]->convertToMono();
@@ -1753,7 +1759,7 @@ int newObjectcMesh(cVector3d position, MyProperties properties) ///
 
 			object[objectCounter]->m_material->setAudioFrictionPitchOffset((const double)properties.audioPitchOffset);
 			
-			cout << object[objectCounter] << endl;
+			//cout << object[objectCounter]<<"----"<<objectCounter << endl;
 
 			// increment counter
 			
@@ -2050,7 +2056,7 @@ int newComplexObject(cVector3d position, MyProperties properties, string objectF
 	}
 #endif
 	// incrementing counter
-	objectCounter++;
+	
 
 	return 0;
 }
@@ -2782,6 +2788,22 @@ void computeInteractionForcesStribeck(cToolCursor* tool, cVector3d currSpeed, cM
 		collision = true;
 		//cGenericObject* collidedObj = tool->m_hapticPoint->m_algorithmFingerProxy->m_collisionEvents[0]->m_object;
 		collidedObj = tool->m_hapticPoint->m_algorithmFingerProxy->m_collisionEvents[0]->m_object;
+		
+		int yer = (collidedObj->getLocalPos()).y();
+
+		if (yer == 30)
+			 number = 0;
+		if (yer == 18)
+			 number = 1;
+		if (yer == 6)
+			 number = 2;
+		if (yer == 42)
+			 number = 3;
+		if (yer == 54)
+			 number = 4;
+		//unsigned char* sample = collidedObj->m_material->getAudioFrictionBuffer()->getData();
+		
+		
 		/*
 		if (once==1){
 		once=0;
@@ -2957,20 +2979,20 @@ void computeInteractionForcesStribeck(cToolCursor* tool, cVector3d currSpeed, cM
 		
 
 			if (originalactivated == 1){
-				collidedObj->m_material->setAudioFrictionBuffer(audioBuffer[interval]);
+				collidedObj->m_material->setAudioFrictionBuffer(audioBuffer[10*number+interval]);
 			
 				//cout << collidedObj->m_material->getaudioGain() << endl;
 			}
 			else if (lpcactivated == 1){
-				collidedObj->m_material->setAudioFrictionBuffer(audioBuffer1[interval]);
+				collidedObj->m_material->setAudioFrictionBuffer(audioBuffer1[10 * number + interval]);
 			}
 			else if (majorfreqactivated == 1){
-				collidedObj->m_material->setAudioFrictionBuffer(audioBuffer2[interval]);
+				collidedObj->m_material->setAudioFrictionBuffer(audioBuffer2[10 * number + interval]);
 			}
 			else if (koriginal == 1)
-				collidedObj->m_material->setAudioFrictionBuffer(audioBuffer3[interval]);
+				collidedObj->m_material->setAudioFrictionBuffer(audioBuffer3[10 * number + interval]);
 			
-
+			cout << 10 * number + interval << endl;
 			
 	}
 }
