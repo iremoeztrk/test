@@ -123,7 +123,7 @@ int frictionactivated = 0;
 int index = 0;
 int flag = 0;
 int en;
-int resultflag=0;
+
 int ind = 0;
 double globspeed = 0;
 int originalactivated = 1;
@@ -1224,16 +1224,16 @@ void updateHaptics(void)
 			clock2.stop();
 			clock2.reset();
 			clock2.start();
-			
+			//we calculate from global position of the device the user's speed.
 
 		}
 		
-		if (clock1.getCurrentTimeSeconds() > 0.5){
-			resultflag = 1;
+		if (clock1.getCurrentTimeSeconds() > 0.5){		
 			clock1.stop();
 			clock1.reset();
 			clock1.start();
-			globspeed = (tool->getDeviceGlobalLinVel()).length();
+			globspeed = posSpeed;
+			// globalspeed is updated in every 0.5 seconds and equal to posSpeed.
 		}
 		
 		// read the time increment in seconds
@@ -2877,13 +2877,26 @@ void computeInteractionForcesStribeck(cToolCursor* tool, cVector3d currSpeed, cM
 			collidedObj->m_material->setDynamicFriction(friction[index]);
 			collidedObj->m_material->setStaticFriction(friction[index]);
 			index++;
+		
 			if (index == 7)
 				index = 0;
+
+			/*if (index == 7)
+			{
+				for (int i = 0; i < 100; i++){
+
+					cout << "fr1:" << fr1[i] << "fr2:" << fr2[i] << "fr3:" << fr3[i] << "fr4:" << fr4[i] << "fr5:" << fr5[i] << "fr6:" << fr6[i] << "fr7:" << fr7[i] << endl;
+				}
+
+				close();
+			}
+			*/
+
 			flag = 0;
 		}
 			if(collidedObj->m_material->getDynamicFriction() == 0){
 									
-								
+				cout << "friction :0" << endl;
 						fr1[ind] = globspeed;
 						if (fr1[ind] != fr1[ind - 1])
 							ind++;
@@ -2943,16 +2956,6 @@ void computeInteractionForcesStribeck(cToolCursor* tool, cVector3d currSpeed, cM
 
 			}
 
-		/*	if (index == 8)
-			{
-				for (int i = 0; i < 100; i++){
-
-					//cout << "fr1:" << fr1[i] << "fr2:" << fr2[i] << "fr3:" << fr3[i] << "fr4:" << fr4[i] << "fr5:" << fr5[i] << "fr6:" << fr6[i] << "fr7:" << fr7[i] << endl;
-				}
-
-				close();
-			}*/
-		
 		//cout << "dynamic:" << collidedObj->m_material->getDynamicFriction() << "static:" << collidedObj->m_material->getStaticFriction() << endl;
 	
 			if (posSpeed < 3.0)
@@ -2992,7 +2995,7 @@ void computeInteractionForcesStribeck(cToolCursor* tool, cVector3d currSpeed, cM
 			else if (koriginal == 1)
 				collidedObj->m_material->setAudioFrictionBuffer(audioBuffer3[10 * number + interval]);
 			
-			cout << 10 * number + interval << endl;
+			//cout << 10 * number + interval << endl;
 			
 	}
 }
