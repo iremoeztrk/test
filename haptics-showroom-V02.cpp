@@ -18,6 +18,8 @@
 #include <CMatrix3d.h>
 //
 #include <vector>
+#include <fstream>
+#include <iostream>
 
 //------------------------------------------------------------------------------
 #include "chai3d.h"
@@ -94,6 +96,7 @@ vector<cAudioBuffer*> audioBuffer1(50);
 vector<cAudioBuffer*> audioBuffer2(50);
 vector<cAudioBuffer*> audioBuffer3(50);
 
+ofstream myfile;
 
 
 
@@ -120,7 +123,7 @@ bool collision = false;
 
 //int activated = 0;
 int frictionactivated = 0;
-int index = 0;
+int index = 10;
 int flag = 0;
 int en;
 
@@ -134,6 +137,8 @@ double GlobalSpeed;
 string name;
 double posSpeed = 0;
 int interval = 0;
+int frictionmodus = 0;
+
 
 cGenericObject* collidedObj;
 cGenericObject *objcollided;
@@ -141,16 +146,16 @@ cGenericObject *objcollided;
 
 int handspeedincmpersecond = 0;
 double friction[] = { 0.0, 0.2, 0.4, 0.6, 0.8,1.0,1.2 };
-double fr1[100];
-double fr2[100];
-double fr3[100];
-double fr4[100];
-double fr5[100];
-double fr6[100];
-double fr7[100];
+double fr1[120];
+double fr2[120];
+double fr3[120];
+double fr4[120];
+double fr5[120];
+double fr6[120];
+double fr7[120];
 int once = 1;
 int number;
-
+//vector<double> fr1(ind);
 
 
 
@@ -318,7 +323,7 @@ int main(int argc, char **argv)
 	cout << "[p]    - LPC sound					|" << endl;
 	cout << "==========================================================" << endl << endl;
 	
-	for (int i = 0; i < 100; i++){
+	for (int i = 0; i < 120; i++){
 
 		fr1[i] = 0;
 		fr2[i] = 0;
@@ -329,6 +334,8 @@ int main(int argc, char **argv)
 		fr7[i] = 0;
 
 	}
+
+
 
 	//--------------------------------------------------------------------------
 	// EXTRACT CURRENT PATH
@@ -1677,7 +1684,7 @@ int newObjectcMesh(cVector3d position, MyProperties properties) ///
 		}
 	}
 #endif
-	//isaretle
+	//audiopoint
 #if 1
 		// check if audio gain is bigger than zero
 	//if (properties.audioGain > 0.0f)
@@ -2874,37 +2881,46 @@ void computeInteractionForcesStribeck(cToolCursor* tool, cVector3d currSpeed, cM
 		*/
 		
 		if (flag == 1){
+
+			if (frictionmodus == 0){
+				index = 0;
+				frictionmodus = 1;
+			}
+			
+			if (index == 7)
+			{
+				cout << "Saving frictions and closing simulation" << endl;
+				myfile.open("friction.txt");
+				for (int i = 0; i < 120; i++){
+
+
+					myfile << fr1[i] << "\t" << fr2[i] << "\t" << fr3[i] << "\t" << fr4[i] << "\t" << fr5[i] << "\t" << fr6[i] << "\t" << fr7[i] << endl;
+
+				}
+				myfile.close();
+				close();
+
+			}
 			collidedObj->m_material->setDynamicFriction(friction[index]);
 			collidedObj->m_material->setStaticFriction(friction[index]);
 			index++;
 		
-			if (index == 7)
-				index = 0;
-
 			/*if (index == 7)
-			{
-				for (int i = 0; i < 100; i++){
-
-					cout << "fr1:" << fr1[i] << "fr2:" << fr2[i] << "fr3:" << fr3[i] << "fr4:" << fr4[i] << "fr5:" << fr5[i] << "fr6:" << fr6[i] << "fr7:" << fr7[i] << endl;
-				}
-
-				close();
-			}
-			*/
-
+				index = 0;*/
 			flag = 0;
 		}
-			if(collidedObj->m_material->getDynamicFriction() == 0){
+
+		//collidedObj->m_material->getDynamicFriction()
+			if(index == 1){
 									
 				cout << "friction :0" << endl;
 						fr1[ind] = globspeed;
 						if (fr1[ind] != fr1[ind - 1])
 							ind++;
-
 						//cout << fr1[ind] << endl;
 					
 			}
-			if (collidedObj->m_material->getDynamicFriction() == 0.2){
+			if (index== 2){
 
 				cout << "friction :0.2"<<endl;
 
@@ -2914,7 +2930,7 @@ void computeInteractionForcesStribeck(cToolCursor* tool, cVector3d currSpeed, cM
 
 				//cout << fr2[ind] << endl;
 			}
-			if (collidedObj->m_material->getDynamicFriction() == 0.4){
+			if (index == 3){
 				cout << "friction :0.4" << endl;
 				fr3[ind] = globspeed;
 				if (fr3[ind] != fr3[ind - 1])
@@ -2922,7 +2938,7 @@ void computeInteractionForcesStribeck(cToolCursor* tool, cVector3d currSpeed, cM
 
 				//cout << fr3[ind] << endl;
 			}
-			if (collidedObj->m_material->getDynamicFriction() == 0.6){
+			if (index == 4){
 				cout << "friction :0.6" << endl;
 				fr4[ind] = globspeed;
 				if (fr4[ind] != fr4[ind - 1])
@@ -2930,7 +2946,7 @@ void computeInteractionForcesStribeck(cToolCursor* tool, cVector3d currSpeed, cM
 
 				//cout << fr4[ind] << endl;
 			}
-			if (collidedObj->m_material->getDynamicFriction() == 0.8){
+			if (index == 5){
 				cout << "friction :0.8" << endl;
 				fr5[ind] = globspeed;
 				if (fr5[ind] != fr5[ind - 1])
@@ -2938,7 +2954,7 @@ void computeInteractionForcesStribeck(cToolCursor* tool, cVector3d currSpeed, cM
 
 				//cout << fr5[ind] << endl;
 			}
-			if (collidedObj->m_material->getDynamicFriction() == 1.0){
+			if (index == 6){
 				cout << "friction :1" << endl;
 				fr6[ind] = globspeed;
 				if (fr6[ind] != fr6[ind - 1])
@@ -2946,7 +2962,7 @@ void computeInteractionForcesStribeck(cToolCursor* tool, cVector3d currSpeed, cM
 
 				//cout << fr6[ind] << endl;
 			}
-			if (collidedObj->m_material->getDynamicFriction() == 1.2){
+			if (index == 7){
 				cout << "friction :1.2" << endl;
 				fr7[ind] = globspeed;
 				if (fr7[ind] != fr7[ind - 1])
@@ -2955,6 +2971,8 @@ void computeInteractionForcesStribeck(cToolCursor* tool, cVector3d currSpeed, cM
 				//cout << fr7[ind] << endl;
 
 			}
+
+			
 
 		//cout << "dynamic:" << collidedObj->m_material->getDynamicFriction() << "static:" << collidedObj->m_material->getStaticFriction() << endl;
 	
